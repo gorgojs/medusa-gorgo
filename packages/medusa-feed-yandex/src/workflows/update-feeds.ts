@@ -21,9 +21,7 @@ export const updateFeedsStep = createStep(
   'update-feeds-step',
   async (feeds: UpdateFeedsStepInput, { container }) => {
     const service = container.resolve<FeedModuleService>(FEED_MODULE)
-    console.log("feeds", feeds)
     const updatedFeeds = await service.updateFeeds(feeds);
-    console.log("updatedFeeds", updatedFeeds)
     return new StepResponse(updatedFeeds);
   }
 )
