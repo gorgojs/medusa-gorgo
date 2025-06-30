@@ -1825,6 +1825,53 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@gorgo/medusa-payment-robokassa@workspace:packages/medusa-payment-robokassa":
+  version: 0.0.0-use.local
+  resolution: "@gorgo/medusa-payment-robokassa@workspace:packages/medusa-payment-robokassa"
+  dependencies:
+    "@medusajs/admin-sdk": "npm:^2.7.0"
+    "@medusajs/cli": "npm:^2.7.0"
+    "@medusajs/framework": "npm:^2.7.0"
+    "@medusajs/icons": "npm:^2.7.0"
+    "@medusajs/medusa": "npm:^2.7.0"
+    "@medusajs/test-utils": "npm:^2.7.0"
+    "@medusajs/ui": "npm:^4.0.8"
+    "@mikro-orm/cli": "npm:6.4.3"
+    "@mikro-orm/core": "npm:6.4.3"
+    "@mikro-orm/knex": "npm:6.4.3"
+    "@mikro-orm/migrations": "npm:6.4.3"
+    "@mikro-orm/postgresql": "npm:6.4.3"
+    "@swc/core": "npm:1.5.7"
+    "@types/node": "npm:^22.13.11"
+    "@types/react": "npm:^19.0.12"
+    "@types/react-dom": "npm:^19.0.4"
+    awilix: "npm:^8.0.1"
+    pg: "npm:^8.14.1"
+    prop-types: "npm:^15.8.1"
+    react: "npm:^18.3.1"
+    react-dom: "npm:^18.3.1"
+    ts-node: "npm:^10.9.2"
+    typescript: "npm:^5.8.2"
+    vite: "npm:^5.2.11"
+    yalc: "npm:^1.0.0-pre.53"
+  peerDependencies:
+    "@medusajs/admin-sdk": ^2.7.0
+    "@medusajs/cli": ^2.7.0
+    "@medusajs/framework": ^2.7.0
+    "@medusajs/icons": ^2.7.0
+    "@medusajs/medusa": ^2.7.0
+    "@medusajs/test-utils": ^2.7.0
+    "@medusajs/ui": ^4.0.8
+    "@mikro-orm/cli": 6.4.3
+    "@mikro-orm/core": 6.4.3
+    "@mikro-orm/knex": 6.4.3
+    "@mikro-orm/migrations": 6.4.3
+    "@mikro-orm/postgresql": 6.4.3
+    awilix: ^8.0.1
+    pg: ^8.14.1
+  languageName: unknown
+  linkType: soft
+
 "@gorgo/medusa-payment-tkassa@workspace:packages/medusa-payment-tkassa":
   version: 0.0.0-use.local
   resolution: "@gorgo/medusa-payment-tkassa@workspace:packages/medusa-payment-tkassa"
