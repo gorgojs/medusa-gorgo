@@ -15,21 +15,25 @@ import {
   DeletePaymentInput, DeletePaymentOutput,
   UpdatePaymentInput, UpdatePaymentOutput,
 } from "@medusajs/framework/types"
-import crypto from "crypto"
 import { RobokassaProviderOptions } from "../types"
 import axios, { AxiosError } from "axios"
-import {
-  getSmallestUnit,
-} from "../utils/get-smallest-unit"
-import jwt from "jsonwebtoken"
-import { generateInvoiceJWT } from "./utils"
+import md5 from "md5"
 
 abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptions> {
   static identifier = "robokassa"
   protected options_: RobokassaProviderOptions
   protected logger_: Logger
-  protected serverUrl_ = "https://services.robokassa.ru/InvoiceServiceWebApi/api/CreateInvoice"
-  protected test_serverUrl_ = "https://test.robokassa.ru/InvoiceServiceWebApi/api/CreateInvoice"
+  protected serverUrl_ = "https://auth.robokassa.ru/Merchant/Index.aspx"
+
+  protected stringToNumberHash(str: string): number {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash |= 0
+    }
+    return Math.abs(hash)
+  }
 
   constructor(container: { logger: Logger }, options: RobokassaProviderOptions) {
     super(container, options)
@@ -41,23 +45,42 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
    * Initiate a new payment.
    */
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
-    this.logger_.debug(`TkassaBase.initiatePayment input:\n${JSON.stringify(input, null, 2)}`)
+    this.logger_.debug(
+      `TkassaBase.initiatePayment input:\n${JSON.stringify(input, null, 2)}`
+    )
 
-    const { amount, context = {}, currency_code } = input
-    const invId = context.idempotency_key as string
-    console.log("options_", this.options_)
-    try {
-      const response = await generateInvoiceJWT(
-        this.options_,
-        invId,
-        Number(amount),
-        "order payment",
-        this.options_.isTest ? this.serverUrl_ : this.test_serverUrl_
-      )
-      const invoiceId = String(response.InvoiceId)
-      return { id: invoiceId, data: { confirmation_url: response.ConfirmationUrl } }
-    } catch (e) {
-      throw this.buildError("An error occurred in initiatePayment", e)
+    const { amount, context = {} } = input
+    const invId = this.stringToNumberHash(context.idempotency_key as string).toString()
+    const outSum = Number(amount).toFixed(2)
+    console.log("account_holder", context.account_holder)
+    console.log("customer", context.customer)
+    const raw = [
+      this.options_.merchantLogin,
+      outSum,
+      invId,
+      this.options_.password1
+    ].join(":")
+    const signature = md5(raw)
+
+    console.log("signature", signature)
+
+    const params = new URLSearchParams({
+      MrchLogin: this.options_.merchantLogin,
+      OutSum: outSum,
+      InvId: invId,
+      SignatureValue: signature,
+      ...(this.options_.isTest ? {IsTest: "1"} : {})
+    }).toString()
+
+    console.log("params", params)
+
+    const url = `${this.serverUrl_}?${params}`
+
+    console.log("url", url)
+
+    return {
+      id: invId,
+      data: { confirmation_url: url }
     }
   }
 
@@ -145,7 +168,7 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
   }
 
   protected async isWebhookEventValid(payload: ProviderWebhookPayload["payload"]): Promise<boolean> {
-    
+
   }
   /**
    * Helper to build errors with additional context.

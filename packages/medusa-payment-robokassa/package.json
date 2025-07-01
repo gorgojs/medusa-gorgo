@@ -38,6 +38,10 @@
     "predev": "medusa plugin:publish",
     "prepublishOnly": "medusa plugin:build"
   },
+  "dependencies": {
+    "base64url": "^3.0.1",
+    "md5": "^2.3.0"
+  },
   "devDependencies": {
     "@medusajs/admin-sdk": "^2.7.0",
     "@medusajs/cli": "^2.7.0",
