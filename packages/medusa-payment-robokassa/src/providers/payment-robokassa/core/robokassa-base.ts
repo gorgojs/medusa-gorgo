@@ -19,25 +19,16 @@ import { RobokassaProviderOptions } from "../types"
 import axios, { AxiosError } from "axios"
 import md5 from "md5"
 import { XMLParser } from 'fast-xml-parser'
+import { stringToNumberHash } from "../utils/string-to-number-hash"
 
 abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOptions> {
   static identifier = "robokassa"
   protected options_: RobokassaProviderOptions
   protected logger_: Logger
-  protected serverUrl_ = "https://auth.robokassa.ru/Merchant/Index.aspx"
-  protected requestUrl_ = "https://auth.robokassa.ru/Merchant/WebService/Service.asmx"
-  protected capturePaymentUrl_ = "https://auth.robokassa.ru/Merchant/Payment/Confirm"
-  protected opStateExt_ = "OpStateExt"
-
-  protected stringToNumberHash(str: string): number {
-    let hash = 0
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
-      hash |= 0
-    }
-    return Math.abs(hash)
-  }
+  protected baseUrl_ = "https://auth.robokassa.ru"
+  protected paymentUrl_ = `${this.baseUrl_}/Merchant/Index.aspx`
+  protected getPaymentUrl_ = `${this.baseUrl_}/Merchant/WebService/Service.asmx/OpStateExt`
+  protected capturePaymentUrl_ = `${this.baseUrl_}/Merchant/Payment/Confirm`
 
   constructor(container: { logger: Logger }, options: RobokassaProviderOptions) {
     super(container, options)
@@ -54,12 +45,12 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
     )
 
     const { amount, context = {} } = input
-    const invId = this.stringToNumberHash(context.idempotency_key as string).toString()
+    const invId = stringToNumberHash(context.idempotency_key as string).toString()
     const outSum = Number(amount).toFixed(2)
     const successUrl2 = input.data?.SuccessUrl2 as string
     const failUrl2 = input.data?.FailUrl2 as string
     const email = input.data?.EMail as string
-    const session_id = input.data?.session_id as string
+    const sessionId = input.data?.session_id as string
     const raw = [
       this.options_.merchantLogin,
       outSum,
@@ -69,7 +60,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       failUrl2,
       "GET",
       this.options_.isTest ? this.options_.test_password1 : this.options_.password1,
-      `Shp_sessionid=${session_id}`
+      `Shp_SessionID=${sessionId}`
     ].join(":")
 
     const signature = md5(raw)
@@ -84,19 +75,19 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       FailUrl2Method: "GET",
       EMail: email,
       SignatureValue: signature,
-      Shp_sessionid: session_id,
+      Shp_SessionID: sessionId,
       ...(this.options_.isTest ? { IsTest: "1" } : {}),
       ...(!this.options_.capture ? { StepByStep: "true" } : {})
     }).toString()
 
-    const url = `${this.serverUrl_}?${params}`
+    const confirmationUrl = `${this.paymentUrl_}?${params}`
 
     return {
       id: invId,
       data: {
         id: invId,
         outSum: outSum,
-        confirmation_url: url
+        confirmation_url: confirmationUrl
       }
     }
   }
@@ -202,7 +193,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       Signature: signature,
     }).toString()
 
-    const url = `${this.requestUrl_}/${this.opStateExt_}?${params}`
+    const url = `${this.getPaymentUrl_}?${params}`
 
     try {
       const { data: xml } = await axios.post(url)
@@ -307,7 +298,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
     )
 
     const invId = payload.data.InvId as string
-    const session_id = payload.data.Shp_sessionid as string
+    const sessionId = payload.data.Shp_SessionID as string
     const outSum =  Number(payload.data.OutSum)
 
     const data = { data: {id: invId}}
@@ -318,32 +309,32 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       case PaymentSessionStatus.AUTHORIZED:
         return {
           action: PaymentActions.AUTHORIZED,
-          data: { session_id: session_id, amount: outSum}
+          data: { session_id: sessionId, amount: outSum}
         }
       case PaymentSessionStatus.CANCELED:
         return {
           action: PaymentActions.CANCELED,
-          data: { session_id: session_id, amount: outSum}
+          data: { session_id: sessionId, amount: outSum}
         }
       case PaymentSessionStatus.PENDING:
         return {
           action: PaymentActions.PENDING,
-          data: { session_id: session_id, amount: outSum}
+          data: { session_id: sessionId, amount: outSum}
         }
       case PaymentSessionStatus.REQUIRES_MORE:
         return {
           action: PaymentActions.REQUIRES_MORE,
-          data: { session_id: session_id, amount: outSum}
+          data: { session_id: sessionId, amount: outSum}
         }
       case PaymentSessionStatus.ERROR:
         return {
           action: PaymentActions.FAILED,
-          data: { session_id: session_id, amount: outSum}
+          data: { session_id: sessionId, amount: outSum}
         }
       case PaymentSessionStatus.CAPTURED:
         return {
           action: PaymentActions.SUCCESSFUL,
-          data: { session_id: session_id, amount: outSum}
+          data: { session_id: sessionId, amount: outSum}
         }
       default:
         return { action: PaymentActions.NOT_SUPPORTED }
