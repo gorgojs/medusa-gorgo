@@ -97,7 +97,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
    */
   async capturePayment(input: CapturePaymentInput): Promise<CapturePaymentOutput> {
     this.logger_.debug(`RobokassaBase.capturePayment input:\n${JSON.stringify(input, null, 2)}`)
-    
+
     const invId = input.data?.id as string
     const outSum = input.data?.outSum as string
 
@@ -119,7 +119,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
 
     try {
       const response = await axios.post(capturePaymentUrl)
-      return { data: response.data as unknown as Record<string, unknown>}
+      return { data: response.data as unknown as Record<string, unknown> }
     } catch (e) {
       throw this.buildError("An error occurred in capturePayment", e)
     }
@@ -159,7 +159,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
    * Refund a payment.
    * Payment refund is not supported by Robokassa.
    */
-  async refundPayment( input: RefundPaymentInput): Promise<RefundPaymentOutput> {
+  async refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutput> {
     this.logger_.debug(`RobokassaBase.refundPayment input:\n${JSON.stringify(input, null, 2)}`)
 
     return input
@@ -252,41 +252,54 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
             status: PaymentSessionStatus.AUTHORIZED, data: {
               ...input.data,
               response: response
-            }}
+            }
+          }
         case 10: // 10 is canceled
-          return { status: PaymentSessionStatus.CANCELED, data: {
+          return {
+            status: PaymentSessionStatus.CANCELED, data: {
               ...input.data,
               response: response
-            }}
+            }
+          }
         case 20: // 20 is on hold (capture not done yet)
         case 50: // 50 is payed, but still processing
-          return { status: PaymentSessionStatus.PENDING, data: {
+          return {
+            status: PaymentSessionStatus.PENDING, data: {
               ...input.data,
               response: response
-            }}
+            }
+          }
         case 80: // 80 is paused
-          return { status: PaymentSessionStatus.REQUIRES_MORE, data: {
+          return {
+            status: PaymentSessionStatus.REQUIRES_MORE, data: {
               ...input.data,
               response: response
-            }}
+            }
+          }
         // TODO: should we move 60 to PaymentSessionStatus.CANCELED? It seams like of canceled payment
         case 60: // 60 is refunded
         // TODO: shoud we remove 1000? It is not present in State.Code https://docs.robokassa.ru/xml-interfaces/#account
         case 1000: // 1000 is internal error
-          return { status: PaymentSessionStatus.ERROR, data: {
+          return {
+            status: PaymentSessionStatus.ERROR, data: {
               ...input.data,
               response: response
-            }}
+            }
+          }
         case 100: // is successfully captured
-          return { status: PaymentSessionStatus.CAPTURED, data: {
+          return {
+            status: PaymentSessionStatus.CAPTURED, data: {
               ...input.data,
               response: response
-            }}
+            }
+          }
         default:
-          return { status: PaymentSessionStatus.ERROR, data: {
+          return {
+            status: PaymentSessionStatus.ERROR, data: {
               ...input.data,
               response: response
-            }}
+            }
+          }
       }
     } catch (e) {
       throw this.buildError("An error occurred in getPaymentStatus", e)
@@ -302,9 +315,9 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
     // TODO: bring types
     const invId = payload.data.InvId as string
     const sessionId = payload.data.Shp_SessionID as string
-    const outSum =  Number(payload.data.OutSum)
+    const outSum = Number(payload.data.OutSum)
 
-    const data = { data: {id: invId}}
+    const data = { data: { id: invId } }
 
     const status = await (await this.getPaymentStatus(data)).status
 
@@ -312,32 +325,32 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
       case PaymentSessionStatus.AUTHORIZED:
         return {
           action: PaymentActions.AUTHORIZED,
-          data: { session_id: sessionId, amount: outSum}
+          data: { session_id: sessionId, amount: outSum }
         }
       case PaymentSessionStatus.CANCELED:
         return {
           action: PaymentActions.CANCELED,
-          data: { session_id: sessionId, amount: outSum}
+          data: { session_id: sessionId, amount: outSum }
         }
       case PaymentSessionStatus.PENDING:
         return {
           action: PaymentActions.PENDING,
-          data: { session_id: sessionId, amount: outSum}
+          data: { session_id: sessionId, amount: outSum }
         }
       case PaymentSessionStatus.REQUIRES_MORE:
         return {
           action: PaymentActions.REQUIRES_MORE,
-          data: { session_id: sessionId, amount: outSum}
+          data: { session_id: sessionId, amount: outSum }
         }
       case PaymentSessionStatus.ERROR:
         return {
           action: PaymentActions.FAILED,
-          data: { session_id: sessionId, amount: outSum}
+          data: { session_id: sessionId, amount: outSum }
         }
       case PaymentSessionStatus.CAPTURED:
         return {
           action: PaymentActions.SUCCESSFUL,
-          data: { session_id: sessionId, amount: outSum}
+          data: { session_id: sessionId, amount: outSum }
         }
       default:
         return { action: PaymentActions.NOT_SUPPORTED }
