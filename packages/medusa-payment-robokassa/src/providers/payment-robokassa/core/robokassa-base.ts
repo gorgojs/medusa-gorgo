@@ -59,6 +59,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
     const successUrl2 = input.data?.SuccessUrl2 as string
     const failUrl2 = input.data?.FailUrl2 as string
     const email = input.data?.EMail as string
+    const session_id = input.data?.session_id as string
     const raw = [
       this.options_.merchantLogin,
       outSum,
@@ -67,7 +68,8 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       "GET",
       failUrl2,
       "GET",
-      this.options_.isTest ? this.options_.test_password1 : this.options_.password1
+      this.options_.isTest ? this.options_.test_password1 : this.options_.password1,
+      `Shp_sessionid=${session_id}`
     ].join(":")
 
     const signature = md5(raw)
@@ -82,6 +84,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       FailUrl2Method: "GET",
       EMail: email,
       SignatureValue: signature,
+      Shp_sessionid: session_id,
       ...(this.options_.isTest ? { IsTest: "1" } : {}),
       ...(!this.options_.capture ? { StepByStep: "true" } : {})
     }).toString()
@@ -206,14 +209,14 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       // 100 captured
       //const testXml = `<? xml version = "1.0" encoding = "utf-8" ?> <OperationStateResponse xmlns="http://auth.robokassa.ru/Merchant/WebService/" > <Result> <Code>0</Code> <Description>успешно</Description> </Result> <State> <Code>100</Code> <RequestDate>03.07.2025</RequestDate> <StateDate>03.07.2025</StateDate> </State> <Info> <IncCurrLabel>string</IncCurrLabel> <IncSum>decimal</IncSum> <IncAccount>string</IncAccount> <PaymentMethod> <Code>string</Code> <Description>string</Description> </PaymentMethod> <OutCurrLabel>string</OutCurrLabel> <OutSum>decimal</OutSum> <OpKey>string</OpKey> <BankCardRRN>string</BankCardRRN> </Info> <UserField> <Field> <Name>string</Name> <Value>string</Value> </Field> </UserField> </OperationStateResponse>`
       // 5 authorized
-      const testXml = `<? xml version = "1.0" encoding = "utf-8" ?> <OperationStateResponse xmlns="http://auth.robokassa.ru/Merchant/WebService/" > <Result> <Code>0</Code> <Description>успешно</Description> </Result> <State> <Code>5</Code> <RequestDate>03.07.2025</RequestDate> <StateDate>03.07.2025</StateDate> </State> <Info> <IncCurrLabel>string</IncCurrLabel> <IncSum>decimal</IncSum> <IncAccount>string</IncAccount> <PaymentMethod> <Code>string</Code> <Description>string</Description> </PaymentMethod> <OutCurrLabel>string</OutCurrLabel> <OutSum>decimal</OutSum> <OpKey>string</OpKey> <BankCardRRN>string</BankCardRRN> </Info> <UserField> <Field> <Name>string</Name> <Value>string</Value> </Field> </UserField> </OperationStateResponse>`
+      //const testXml = `<? xml version = "1.0" encoding = "utf-8" ?> <OperationStateResponse xmlns="http://auth.robokassa.ru/Merchant/WebService/" > <Result> <Code>0</Code> <Description>успешно</Description> </Result> <State> <Code>5</Code> <RequestDate>03.07.2025</RequestDate> <StateDate>03.07.2025</StateDate> </State> <Info> <IncCurrLabel>string</IncCurrLabel> <IncSum>decimal</IncSum> <IncAccount>string</IncAccount> <PaymentMethod> <Code>string</Code> <Description>string</Description> </PaymentMethod> <OutCurrLabel>string</OutCurrLabel> <OutSum>decimal</OutSum> <OpKey>string</OpKey> <BankCardRRN>string</BankCardRRN> </Info> <UserField> <Field> <Name>string</Name> <Value>string</Value> </Field> </UserField> </OperationStateResponse>`
 
       const parser = new XMLParser({
         ignoreAttributes: false,
         attributeNamePrefix: "@_",
       })
 
-      const parsed = parser.parse(testXml)
+      const parsed = parser.parse(xml)
       const response = parsed['OperationStateResponse']
 
       return {
@@ -302,15 +305,49 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
     this.logger_.debug(
       `RobokassaBase.getWebhookActionAndData payload:\n${JSON.stringify(payload, null, 2)}`
     )
-    const data = payload.data as any
-    const raw: {
-      PaymentId: number | string
-      Amount?: number
-      Status?: string
-      [k: string]: any
-    } = data
 
-    return { action: PaymentActions.AUTHORIZED }
+    const invId = payload.data.InvId as string
+    const session_id = payload.data.Shp_sessionid as string
+    const outSum =  Number(payload.data.OutSum)
+
+    const data = { data: {id: invId}}
+
+    const status = await (await this.getPaymentStatus(data)).status
+
+    switch (status) {
+      case PaymentSessionStatus.AUTHORIZED:
+        return {
+          action: PaymentActions.AUTHORIZED,
+          data: { session_id: session_id, amount: outSum}
+        }
+      case PaymentSessionStatus.CANCELED:
+        return {
+          action: PaymentActions.CANCELED,
+          data: { session_id: session_id, amount: outSum}
+        }
+      case PaymentSessionStatus.PENDING:
+        return {
+          action: PaymentActions.PENDING,
+          data: { session_id: session_id, amount: outSum}
+        }
+      case PaymentSessionStatus.REQUIRES_MORE:
+        return {
+          action: PaymentActions.REQUIRES_MORE,
+          data: { session_id: session_id, amount: outSum}
+        }
+      case PaymentSessionStatus.ERROR:
+        return {
+          action: PaymentActions.FAILED,
+          data: { session_id: session_id, amount: outSum}
+        }
+      case PaymentSessionStatus.CAPTURED:
+        return {
+          action: PaymentActions.SUCCESSFUL,
+          data: { session_id: session_id, amount: outSum}
+        }
+      default:
+        return { action: PaymentActions.NOT_SUPPORTED }
+    }
   }
 
   /**
