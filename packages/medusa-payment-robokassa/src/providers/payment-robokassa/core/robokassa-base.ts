@@ -15,22 +15,22 @@ import {
   DeletePaymentInput, DeletePaymentOutput,
   UpdatePaymentInput, UpdatePaymentOutput,
 } from "@medusajs/framework/types"
-import { RobokassaProviderOptions } from "../types"
+import { RobokassaOptions } from "../types"
 import axios, { AxiosError } from "axios"
 import md5 from "md5"
 import { XMLParser } from 'fast-xml-parser'
 import { stringToNumberHash } from "../utils/string-to-number-hash"
 
-abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOptions> {
+abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
   static identifier = "robokassa"
-  protected options_: RobokassaProviderOptions
+  protected options_: RobokassaOptions
   protected logger_: Logger
   protected baseUrl_ = "https://auth.robokassa.ru"
   protected paymentUrl_ = `${this.baseUrl_}/Merchant/Index.aspx`
   protected getPaymentUrl_ = `${this.baseUrl_}/Merchant/WebService/Service.asmx/OpStateExt`
   protected capturePaymentUrl_ = `${this.baseUrl_}/Merchant/Payment/Confirm`
 
-  constructor(container: { logger: Logger }, options: RobokassaProviderOptions) {
+  constructor(container: { logger: Logger }, options: RobokassaOptions) {
     super(container, options)
     this.options_ = options
     this.logger_ = container.logger
@@ -59,7 +59,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       "GET",
       failUrl2,
       "GET",
-      this.options_.isTest ? this.options_.test_password1 : this.options_.password1,
+      this.options_.isTest ? this.options_.testPassword1 : this.options_.password1,
       `Shp_SessionID=${sessionId}`
     ].join(":")
 
@@ -80,14 +80,14 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       ...(!this.options_.capture ? { StepByStep: "true" } : {})
     }).toString()
 
-    const confirmationUrl = `${this.paymentUrl_}?${params}`
+    const paymentUrl = `${this.paymentUrl_}?${params}`
 
     return {
       id: invId,
       data: {
         id: invId,
         outSum: outSum,
-        confirmation_url: confirmationUrl
+        paymentUrl: paymentUrl
       }
     }
   }
@@ -105,7 +105,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       this.options_.merchantLogin,
       outSum,
       invId,
-      this.options_.isTest ? this.options_.test_password1 : this.options_.password1
+      this.options_.isTest ? this.options_.testPassword1 : this.options_.password1
     ].join(":")
     const signature = md5(raw)
 
@@ -115,11 +115,11 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       Signature: signature,
       OutSum: outSum
     }).toString()
-    const url = `${this.capturePaymentUrl_}?${params}`
+    const capturePaymentUrl = `${this.capturePaymentUrl_}?${params}`
 
     try {
-      const response = await axios.post(url)
-      return { data: input.data}
+      const response = await axios.post(capturePaymentUrl)
+      return { data: response.data as unknown as Record<string, unknown>}
     } catch (e) {
       throw this.buildError("An error occurred in capturePayment", e)
     }
@@ -184,7 +184,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
     const raw = [
       this.options_.merchantLogin,
       invId,
-      this.options_.isTest ? this.options_.test_password2 : this.options_.password2
+      this.options_.isTest ? this.options_.testPassword2 : this.options_.password2
     ].join(":")
     const signature = md5(raw)
     const params = new URLSearchParams({
@@ -247,35 +247,37 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       const paymentState = parseInt(state.Code, 10)
 
       switch (paymentState) {
-        case 5:
+        case 5: // 5 is initiated
           return {
             status: PaymentSessionStatus.AUTHORIZED, data: {
               ...input.data,
               response: response
             }}
-        case 10:
+        case 10: // 10 is canceled
           return { status: PaymentSessionStatus.CANCELED, data: {
               ...input.data,
               response: response
             }}
-        case 20:
-        case 50:
+        case 20: // 20 is on hold (capture not done yet)
+        case 50: // 50 is payed, but still processing
           return { status: PaymentSessionStatus.PENDING, data: {
               ...input.data,
               response: response
             }}
-        case 80:
+        case 80: // 80 is paused
           return { status: PaymentSessionStatus.REQUIRES_MORE, data: {
               ...input.data,
               response: response
             }}
-        case 60:
-        case 1000:
+        // TODO: should we move 60 to PaymentSessionStatus.CANCELED? It seams like of canceled payment
+        case 60: // 60 is refunded
+        // TODO: shoud we remove 1000? It is not present in State.Code https://docs.robokassa.ru/xml-interfaces/#account
+        case 1000: // 1000 is internal error
           return { status: PaymentSessionStatus.ERROR, data: {
               ...input.data,
               response: response
             }}
-        case 100:
+        case 100: // is successfully captured
           return { status: PaymentSessionStatus.CAPTURED, data: {
               ...input.data,
               response: response
@@ -297,6 +299,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOp
       `RobokassaBase.getWebhookActionAndData payload:\n${JSON.stringify(payload, null, 2)}`
     )
 
+    // TODO: bring types
     const invId = payload.data.InvId as string
     const sessionId = payload.data.Shp_SessionID as string
     const outSum =  Number(payload.data.OutSum)

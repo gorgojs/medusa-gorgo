@@ -182,7 +182,7 @@ const RobokassaPaymentButton: React.FC<RobokassaPaymentProps> = ({
 
   const handlePayment = () => {
     setSubmitting(true)
-    const paymentUrl = (paymentSession?.data as any).confirmation_url
+    const paymentUrl = (paymentSession?.data as any).paymentUrl
     if (paymentUrl) {
       router.push(paymentUrl)
     } else {
