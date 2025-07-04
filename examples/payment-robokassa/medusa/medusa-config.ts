@@ -38,7 +38,8 @@ module.exports = defineConfig({
               password2: process.env.ROBOKASSA_PASSWORD_2,
               test_password1: process.env.ROBOKASSA_TEST_PASSWORD_1,
               test_password2: process.env.ROBOKASSA_TEST_PASSWORD_2,
-              isTest: true
+              capture: false,
+              isTest: false
             },
           },  
         ],

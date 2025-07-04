@@ -20,13 +20,13 @@ import axios, { AxiosError } from "axios"
 import md5 from "md5"
 import { XMLParser } from 'fast-xml-parser'
 
-abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptions> {
+abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaProviderOptions> {
   static identifier = "robokassa"
   protected options_: RobokassaProviderOptions
   protected logger_: Logger
   protected serverUrl_ = "https://auth.robokassa.ru/Merchant/Index.aspx"
   protected requestUrl_ = "https://auth.robokassa.ru/Merchant/WebService/Service.asmx"
-  protected partnerUrl_ = "https://services.robokassa.ru/PartnerRegisterService/api/Operation/RefundOperation"
+  protected capturePaymentUrl_ = "https://auth.robokassa.ru/Merchant/Payment/Confirm"
   protected opStateExt_ = "OpStateExt"
 
   protected stringToNumberHash(str: string): number {
@@ -50,7 +50,7 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
    */
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     this.logger_.debug(
-      `TkassaBase.initiatePayment input:\n${JSON.stringify(input, null, 2)}`
+      `RobokassaBase.initiatePayment input:\n${JSON.stringify(input, null, 2)}`
     )
 
     const { amount, context = {} } = input
@@ -69,6 +69,7 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
       "GET",
       this.options_.isTest ? this.options_.test_password1 : this.options_.password1
     ].join(":")
+
     const signature = md5(raw)
 
     const params = new URLSearchParams({
@@ -81,7 +82,8 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
       FailUrl2Method: "GET",
       EMail: email,
       SignatureValue: signature,
-      ...(this.options_.isTest ? { IsTest: "1" } : {})
+      ...(this.options_.isTest ? { IsTest: "1" } : {}),
+      ...(!this.options_.capture ? { StepByStep: "true" } : {})
     }).toString()
 
     const url = `${this.serverUrl_}?${params}`
@@ -90,6 +92,7 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
       id: invId,
       data: {
         id: invId,
+        outSum: outSum,
         confirmation_url: url
       }
     }
@@ -97,20 +100,42 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
 
   /**
    * Capture an existing payment.
-   * Capture a payment is not supported by Robokassa.
    */
   async capturePayment(input: CapturePaymentInput): Promise<CapturePaymentOutput> {
-    this.logger_.debug(`TkassaBase.capturePayment input:\n${JSON.stringify(input, null, 2)}`)
+    this.logger_.debug(`RobokassaBase.capturePayment input:\n${JSON.stringify(input, null, 2)}`)
+    
+    const invId = input.data?.id as string
+    const outSum = input.data?.outSum as string
 
-    const statusResponse = await this.getPaymentStatus(input)
-    return statusResponse
+    const raw = [
+      this.options_.merchantLogin,
+      outSum,
+      invId,
+      this.options_.isTest ? this.options_.test_password1 : this.options_.password1
+    ].join(":")
+    const signature = md5(raw)
+
+    const params = new URLSearchParams({
+      MerchantLogin: this.options_.merchantLogin,
+      InvoiceID: invId,
+      Signature: signature,
+      OutSum: outSum
+    }).toString()
+    const url = `${this.capturePaymentUrl_}?${params}`
+
+    try {
+      const response = await axios.post(url)
+      return { data: input.data}
+    } catch (e) {
+      throw this.buildError("An error occurred in capturePayment", e)
+    }
   }
 
   /**
    * Authorize a payment by retrieving its status.
    */
   async authorizePayment(input: AuthorizePaymentInput): Promise<AuthorizePaymentOutput> {
-    this.logger_.debug(`TkassaBase.authorizePayment input:\n${JSON.stringify(input, null, 2)}`)
+    this.logger_.debug(`RobokassaBase.authorizePayment input:\n${JSON.stringify(input, null, 2)}`)
 
     const statusResponse = await this.getPaymentStatus(input)
     return statusResponse
@@ -121,7 +146,7 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
    * Payment delete is not supported by Robokassa.
    */
   async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
-    this.logger_.debug(`TkassaBase.deletePayment input:\n${JSON.stringify(input, null, 2)}`)
+    this.logger_.debug(`RobokassaBase.deletePayment input:\n${JSON.stringify(input, null, 2)}`)
 
     return input
   }
@@ -131,42 +156,26 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
    * Payment update is not supported by Robokassa.
    */
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
-    this.logger_.debug(`TkassaBase.updatePayment input:\n${JSON.stringify(input, null, 2)}`)
+    this.logger_.debug(`RobokassaBase.updatePayment input:\n${JSON.stringify(input, null, 2)}`)
 
     return input
   }
 
   /**
    * Refund a payment.
+   * Payment refund is not supported by Robokassa.
    */
-  async refundPayment({
-    amount,
-    data,
-  }: RefundPaymentInput): Promise<RefundPaymentOutput> {
-    this.logger_.debug(`TkassaBase.refundPayment input:\n${JSON.stringify({ amount, data }, null, 2)}`)
+  async refundPayment( input: RefundPaymentInput): Promise<RefundPaymentOutput> {
+    this.logger_.debug(`RobokassaBase.refundPayment input:\n${JSON.stringify(input, null, 2)}`)
 
-    const opKey = data?.id as string
-    const refundSum = Number(amount).toFixed(2)
-
-    try {
-      const response = await axios.post(
-        this.partnerUrl_,
-        {
-          "RoboxPartnerId": this.options_.merchantLogin,
-          "OpKey": opKey,
-          "RefundSum": refundSum,
-        })
-      return { data: response.data }
-    } catch (e) {
-      throw this.buildError("An error occurred in refundPayment", e)
-    }
+    return input
   }
 
   /**
    * Cancel an existing payment.
    */
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
-    this.logger_.debug(`TkassaBase.cancelPayment input:\n${JSON.stringify(input, null, 2)}`)
+    this.logger_.debug(`RobokassaBase.cancelPayment input:\n${JSON.stringify(input, null, 2)}`)
 
     return input
   }
@@ -175,7 +184,7 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
    * Retrieve a payment.
    */
   async retrievePayment(input: RetrievePaymentInput): Promise<RetrievePaymentOutput> {
-    this.logger_.debug(`TkassaBase.retrievePayment input:\n${JSON.stringify(input, null, 2)}`)
+    this.logger_.debug(`RobokassaBase.retrievePayment input:\n${JSON.stringify(input, null, 2)}`)
 
     const invId = input.data?.id as string
     const raw = [
@@ -195,9 +204,9 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
     try {
       const { data: xml } = await axios.post(url)
       // 100 captured
-      const testXml = `<? xml version = "1.0" encoding = "utf-8" ?> <OperationStateResponse xmlns="http://auth.robokassa.ru/Merchant/WebService/" > <Result> <Code>0</Code> <Description>успешно</Description> </Result> <State> <Code>100</Code> <RequestDate>03.07.2025</RequestDate> <StateDate>03.07.2025</StateDate> </State> <Info> <IncCurrLabel>string</IncCurrLabel> <IncSum>decimal</IncSum> <IncAccount>string</IncAccount> <PaymentMethod> <Code>string</Code> <Description>string</Description> </PaymentMethod> <OutCurrLabel>string</OutCurrLabel> <OutSum>decimal</OutSum> <OpKey>string</OpKey> <BankCardRRN>string</BankCardRRN> </Info> <UserField> <Field> <Name>string</Name> <Value>string</Value> </Field> </UserField> </OperationStateResponse>`
+      //const testXml = `<? xml version = "1.0" encoding = "utf-8" ?> <OperationStateResponse xmlns="http://auth.robokassa.ru/Merchant/WebService/" > <Result> <Code>0</Code> <Description>успешно</Description> </Result> <State> <Code>100</Code> <RequestDate>03.07.2025</RequestDate> <StateDate>03.07.2025</StateDate> </State> <Info> <IncCurrLabel>string</IncCurrLabel> <IncSum>decimal</IncSum> <IncAccount>string</IncAccount> <PaymentMethod> <Code>string</Code> <Description>string</Description> </PaymentMethod> <OutCurrLabel>string</OutCurrLabel> <OutSum>decimal</OutSum> <OpKey>string</OpKey> <BankCardRRN>string</BankCardRRN> </Info> <UserField> <Field> <Name>string</Name> <Value>string</Value> </Field> </UserField> </OperationStateResponse>`
       // 5 authorized
-      //const testXml = `<? xml version = "1.0" encoding = "utf-8" ?> <OperationStateResponse xmlns="http://auth.robokassa.ru/Merchant/WebService/" > <Result> <Code>0</Code> <Description>успешно</Description> </Result> <State> <Code>5</Code> <RequestDate>03.07.2025</RequestDate> <StateDate>03.07.2025</StateDate> </State> <Info> <IncCurrLabel>string</IncCurrLabel> <IncSum>decimal</IncSum> <IncAccount>string</IncAccount> <PaymentMethod> <Code>string</Code> <Description>string</Description> </PaymentMethod> <OutCurrLabel>string</OutCurrLabel> <OutSum>decimal</OutSum> <OpKey>string</OpKey> <BankCardRRN>string</BankCardRRN> </Info> <UserField> <Field> <Name>string</Name> <Value>string</Value> </Field> </UserField> </OperationStateResponse>`
+      const testXml = `<? xml version = "1.0" encoding = "utf-8" ?> <OperationStateResponse xmlns="http://auth.robokassa.ru/Merchant/WebService/" > <Result> <Code>0</Code> <Description>успешно</Description> </Result> <State> <Code>5</Code> <RequestDate>03.07.2025</RequestDate> <StateDate>03.07.2025</StateDate> </State> <Info> <IncCurrLabel>string</IncCurrLabel> <IncSum>decimal</IncSum> <IncAccount>string</IncAccount> <PaymentMethod> <Code>string</Code> <Description>string</Description> </PaymentMethod> <OutCurrLabel>string</OutCurrLabel> <OutSum>decimal</OutSum> <OpKey>string</OpKey> <BankCardRRN>string</BankCardRRN> </Info> <UserField> <Field> <Name>string</Name> <Value>string</Value> </Field> </UserField> </OperationStateResponse>`
 
       const parser = new XMLParser({
         ignoreAttributes: false,
@@ -225,7 +234,7 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
     input: GetPaymentStatusInput
   ): Promise<GetPaymentStatusOutput> {
     this.logger_.debug(
-      `TkassaProvider.getPaymentStatus input:\n${JSON.stringify(input, null, 2)}`
+      `RobokassaBase.getPaymentStatus input:\n${JSON.stringify(input, null, 2)}`
     )
     try {
       const response = (await this.retrievePayment(input)).data?.response as { Result: { Code: string, Description: string }, State: { Code: string } }
@@ -291,7 +300,7 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
   // TODO: Webhooks
   async getWebhookActionAndData(payload: ProviderWebhookPayload["payload"]): Promise<WebhookActionResult> {
     this.logger_.debug(
-      `TkassaProvider.getWebhookActionAndData payload:\n${JSON.stringify(payload, null, 2)}`
+      `RobokassaBase.getWebhookActionAndData payload:\n${JSON.stringify(payload, null, 2)}`
     )
     const data = payload.data as any
     const raw: {
@@ -319,5 +328,5 @@ abstract class TkassaBase extends AbstractPaymentProvider<RobokassaProviderOptio
   }
 }
 
-export default TkassaBase
+export default RobokassaBase
 
