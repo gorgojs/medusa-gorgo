@@ -55,13 +55,14 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
       this.options_.merchantLogin,
       outSum,
       invId,
+      this.options_.capture ? "" : "true",
       successUrl2,
       "GET",
       failUrl2,
       "GET",
       this.options_.isTest ? this.options_.testPassword1 : this.options_.password1,
       `Shp_SessionID=${sessionId}`
-    ].join(":")
+    ].filter(v => v).join(":")
 
     const signature = md5(raw)
 
@@ -112,7 +113,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
     const params = new URLSearchParams({
       MerchantLogin: this.options_.merchantLogin,
       InvoiceID: invId,
-      Signature: signature,
+      SignatureValue: signature,
       OutSum: outSum
     }).toString()
     const capturePaymentUrl = `${this.capturePaymentUrl_}?${params}`
@@ -217,7 +218,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
         }
       }
     } catch (e) {
-      throw this.buildError("An error occurred in getPaymentStatus", e)
+      throw this.buildError("An error occurred in retrievePayment", e)
     }
   }
 
@@ -247,13 +248,6 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
       const paymentState = parseInt(state.Code, 10)
 
       switch (paymentState) {
-        case 5: // 5 is initiated
-          return {
-            status: PaymentSessionStatus.AUTHORIZED, data: {
-              ...input.data,
-              response: response
-            }
-          }
         case 10: // 10 is canceled
           return {
             status: PaymentSessionStatus.CANCELED, data: {
@@ -262,6 +256,13 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
             }
           }
         case 20: // 20 is on hold (capture not done yet)
+          return {
+            status: PaymentSessionStatus.AUTHORIZED, data: {
+              ...input.data,
+              response: response
+            }
+          }
+        case 5: // 5 is initiated
         case 50: // 50 is payed, but still processing
           return {
             status: PaymentSessionStatus.PENDING, data: {
@@ -276,16 +277,6 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
               response: response
             }
           }
-        // TODO: should we move 60 to PaymentSessionStatus.CANCELED? It seams like of canceled payment
-        case 60: // 60 is refunded
-        // TODO: shoud we remove 1000? It is not present in State.Code https://docs.robokassa.ru/xml-interfaces/#account
-        case 1000: // 1000 is internal error
-          return {
-            status: PaymentSessionStatus.ERROR, data: {
-              ...input.data,
-              response: response
-            }
-          }
         case 100: // is successfully captured
           return {
             status: PaymentSessionStatus.CAPTURED, data: {
@@ -293,6 +284,10 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
               response: response
             }
           }
+        // TODO: should we move 60 to PaymentSessionStatus.CANCELED? It seams like of canceled payment
+        case 60: // 60 is refunded
+        // TODO: shoud we remove 1000? It is not present in State.Code https://docs.robokassa.ru/xml-interfaces/#account
+        case 1000: // 1000 is internal error
         default:
           return {
             status: PaymentSessionStatus.ERROR, data: {
