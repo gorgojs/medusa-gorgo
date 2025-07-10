@@ -1,6 +1,6 @@
 export interface RobokassaOptions {
   merchantLogin: string
-  alg: string
+  hashAlgorithm: string
   password1: string
   password2: string
   testPassword1?: string

@@ -33,7 +33,7 @@ module.exports = defineConfig({
             id: "robokassa",
             options: {
               merchantLogin: process.env.ROBOKASSA_MERCHANT_LOGIN,
-              alg: process.env.ROBOKASSA_ALG,
+              hashAlgorithm: process.env.ROBOKASSA_HASH_ALGORITHM,
               password1: process.env.ROBOKASSA_PASSWORD_1,
               password2: process.env.ROBOKASSA_PASSWORD_2,
               test_password1: process.env.ROBOKASSA_TEST_PASSWORD_1,

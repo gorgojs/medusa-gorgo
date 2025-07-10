@@ -1,7 +1,8 @@
 import {
   AbstractPaymentProvider,
   PaymentSessionStatus,
-  PaymentActions
+  PaymentActions,
+  isDefined
 } from "@medusajs/framework/utils"
 import {
   InitiatePaymentInput, InitiatePaymentOutput,
@@ -17,9 +18,9 @@ import {
 } from "@medusajs/framework/types"
 import { RobokassaOptions } from "../types"
 import axios, { AxiosError } from "axios"
-import md5 from "md5"
 import { XMLParser } from 'fast-xml-parser'
 import { stringToNumberHash } from "../utils/string-to-number-hash"
+import { createHash } from "crypto"
 
 abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
   static identifier = "robokassa"
@@ -29,6 +30,13 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
   protected paymentUrl_ = `${this.baseUrl_}/Merchant/Index.aspx`
   protected getPaymentUrl_ = `${this.baseUrl_}/Merchant/WebService/Service.asmx/OpStateExt`
   protected capturePaymentUrl_ = `${this.baseUrl_}/Merchant/Payment/Confirm`
+  static readonly hashAlgorithms = ['md5', 'ripemd160', 'sha1', 'sha256', 'sha384', 'sha512'] as const
+
+  static validateOptions(options: RobokassaOptions): void {
+    if(!isDefined(options.hashAlgorithm) || !this.hashAlgorithms.includes(options.hashAlgorithm as (typeof this.hashAlgorithms)[number])){
+      throw new Error("Required option `alg` is missing in Robokassa plugin")
+    }
+  }
 
   constructor(container: { logger: Logger }, options: RobokassaOptions) {
     super(container, options)
@@ -64,7 +72,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
       `Shp_SessionID=${sessionId}`
     ].filter(v => v).join(":")
 
-    const signature = md5(raw)
+    const signature = createHash(this.options_.hashAlgorithm).update(raw).digest('hex')
 
     const params = new URLSearchParams({
       MerchantLogin: this.options_.merchantLogin,
@@ -108,7 +116,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
       invId,
       this.options_.isTest ? this.options_.testPassword1 : this.options_.password1
     ].join(":")
-    const signature = md5(raw)
+    const signature = createHash(this.options_.hashAlgorithm).update(raw).digest('hex')
 
     const params = new URLSearchParams({
       MerchantLogin: this.options_.merchantLogin,
@@ -187,7 +195,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
       invId,
       this.options_.isTest ? this.options_.testPassword2 : this.options_.password2
     ].join(":")
-    const signature = md5(raw)
+    const signature = createHash(this.options_.hashAlgorithm).update(raw).digest('hex')
     const params = new URLSearchParams({
       MerchantLogin: this.options_.merchantLogin,
       InvoiceID: invId,
