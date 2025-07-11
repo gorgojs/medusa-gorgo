@@ -13,7 +13,18 @@ export interface PaymentOptions {
 }
 
 export interface RobokassaEvent {
-  // TODO: bring types
+  out_summ: string
+  OutSum: string
+  inv_id: string
+  InvId: string
+  crc: string
+  SignatureValue: string
+  PaymentMethod: string
+  IncSum: string
+  IncCurrLabel: string
+  EMAil: string
+  Fee: string
+  Shp_SessionID: string
 }
 
 export const PaymentProviderKeys = {

@@ -16,7 +16,7 @@ import {
   DeletePaymentInput, DeletePaymentOutput,
   UpdatePaymentInput, UpdatePaymentOutput,
 } from "@medusajs/framework/types"
-import { RobokassaOptions } from "../types"
+import { RobokassaOptions, RobokassaEvent } from "../types"
 import axios, { AxiosError } from "axios"
 import { XMLParser } from 'fast-xml-parser'
 import { stringToNumberHash } from "../utils/string-to-number-hash"
@@ -257,6 +257,7 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
 
       switch (paymentState) {
         case 10: // 10 is canceled
+        case 60: // 60 is refunded
           return {
             status: PaymentSessionStatus.CANCELED, data: {
               ...input.data,
@@ -292,10 +293,6 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
               response: response
             }
           }
-        // TODO: should we move 60 to PaymentSessionStatus.CANCELED? It seams like of canceled payment
-        case 60: // 60 is refunded
-        // TODO: shoud we remove 1000? It is not present in State.Code https://docs.robokassa.ru/xml-interfaces/#account
-        case 1000: // 1000 is internal error
         default:
           return {
             status: PaymentSessionStatus.ERROR, data: {
@@ -315,14 +312,20 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
       `RobokassaBase.getWebhookActionAndData payload:\n${JSON.stringify(payload, null, 2)}`
     )
 
-    // TODO: bring types
-    const invId = payload.data.InvId as string
-    const sessionId = payload.data.Shp_SessionID as string
-    const outSum = Number(payload.data.OutSum)
+    const data = payload.data as unknown as RobokassaEvent
+    const isValid = await this.isWebhookEventValid(data)
+    if (!isValid)
+      return {
+        action: PaymentActions.NOT_SUPPORTED
+      }
+    
+    const invId = data.InvId
+    const sessionId = data.Shp_SessionID
+    const outSum = Number(data.OutSum)
 
-    const data = { data: { id: invId } }
+    const requestData = { data: { id: invId } }
 
-    const status = await (await this.getPaymentStatus(data)).status
+    const status = (await this.getPaymentStatus(requestData)).status
 
     switch (status) {
       case PaymentSessionStatus.AUTHORIZED:
@@ -359,7 +362,18 @@ abstract class RobokassaBase extends AbstractPaymentProvider<RobokassaOptions> {
         return { action: PaymentActions.NOT_SUPPORTED }
     }
   }
-
+  
+  protected async isWebhookEventValid(data: RobokassaEvent): Promise<boolean>{
+    const incomingSignature = data.SignatureValue
+    const raw = [
+      data.OutSum,
+      data.InvId,
+      this.options_.password2,
+      `Shp_SessionID=${data.Shp_SessionID}`
+    ].join(":")
+    const signature = createHash(this.options_.hashAlgorithm).update(raw).digest('hex')    
+    return signature === incomingSignature
+  }
   /**
    * Helper to build errors with additional context.
    */
