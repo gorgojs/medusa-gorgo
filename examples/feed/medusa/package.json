@@ -16,12 +16,15 @@
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
     "start": "medusa start",
-    "dev": "medusa develop",
+    "dev": "yarn predev && medusa develop",
+    "predev": "medusa plugin:add @gorgo/medusa-feed",
+    "db:migrate": "medusa db:migrate",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
     "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit",
     "test:unit": "TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit"
   },
   "dependencies": {
+    "@gorgo/medusa-feed": "latest",
     "@medusajs/admin-sdk": "2.8.7",
     "@medusajs/cli": "2.8.7",
     "@medusajs/framework": "2.8.7",
