@@ -1,8 +1,6 @@
 import { FeedModuleService } from "./services"
 import loadProviders from "./loaders/providers"
-import { Module, Modules } from "@medusajs/framework/utils"
-
-console.log("=== Loading Feed Module")
+import { Module } from "@medusajs/framework/utils"
 
 export const FEED_MODULE = "feed"
 

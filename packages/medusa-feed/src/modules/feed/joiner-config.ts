@@ -1,5 +1,6 @@
-import { defineJoinerConfig, Modules } from "@medusajs/framework/utils"
+import { defineJoinerConfig } from "@medusajs/framework/utils"
+import { default as schema } from "./schema"
 
 export const joinerConfig = defineJoinerConfig("feed", {
-  models: [{ name: "Feed" }],
+  schema
 })

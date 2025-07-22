@@ -12,7 +12,20 @@ export class AbstractFeedProvider implements IFeedProvider {
    *   // ...
    * }
    */
-  static identifier: string
+  public static identifier: string
+
+  /**
+   * Each file provider has a unique ID used to identify it. The provider's ID
+   * will be stored as `fs_{identifier}_{id}`, where `{id}` is the provider's `id`
+   * property in the `medusa-config.ts`.
+   *
+   * @example
+   * class MyFileProviderService extends AbstractFileProviderService {
+   *   static identifier = "my-file"
+   *   // ...
+   * }
+   */
+  public static title: string
 
   /**
    * This method validates the options of the provider set in `medusa-config.ts`.
@@ -41,6 +54,9 @@ export class AbstractFeedProvider implements IFeedProvider {
    */
   getIdentifier() {
     return (this.constructor as any).identifier
+  }
+  getTitle() {
+    return (this.constructor as any).title
   }
   async get(): Promise<string> {
     throw Error("upload must be overridden by the child class")

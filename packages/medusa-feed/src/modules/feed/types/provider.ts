@@ -29,6 +29,5 @@ export type FeedModuleOptions = Partial<ModuleServiceInitializeOptions> & {
 }
 
 export interface IFeedProvider {
-    get(): Promise<string>;
     getFeedData(input: Record<string, any>): Promise<string>;
 }

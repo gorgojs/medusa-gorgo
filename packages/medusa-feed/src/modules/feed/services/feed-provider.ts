@@ -49,13 +49,6 @@ export default class FeedProviderService {
       .filter(key => key.startsWith(prefix))
   }
 
-  get(
-    providerId: string,
-  ): Promise<string> {
-    const provider = this.retrieveProvider(providerId)
-    return provider.get()
-  }
-
   getFeedData(
     providerId: string,
     input: Record<string, any>
