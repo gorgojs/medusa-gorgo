@@ -49,4 +49,12 @@ export default class FeedProviderService {
     const provider = this.retrieveProvider(providerId)
     return provider.get()
   }
+
+  getFeedData(
+    providerId: string,
+    input: Record<string, any>
+  ): Promise<string> {
+    const provider = this.retrieveProvider(providerId)
+    return provider.getFeedData(input)
+  }
 }

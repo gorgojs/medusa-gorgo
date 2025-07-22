@@ -45,4 +45,8 @@ export class AbstractFeedProvider implements IFeedProvider {
   async get(): Promise<string> {
     throw Error("upload must be overridden by the child class")
   }
+
+  async getFeedData(input: Record<string, any>): Promise<string> {
+    throw Error("upload must be overridden by the child class")
+  }
 }
