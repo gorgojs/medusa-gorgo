@@ -43,6 +43,12 @@ export default class FeedProviderService {
     return `${(providerClass as any).identifier}_${optionName}`
   }
 
+  getProvidersList(): string[] {
+    const prefix = FeedProviderRegistrationPrefix
+    return Object.keys(this.dependencies)
+      .filter(key => key.startsWith(prefix))
+  }
+
   get(
     providerId: string,
   ): Promise<string> {

@@ -29,6 +29,10 @@ export default class FeedModuleService extends MedusaService({
     return await this.feedProviderService_.getFeedData(key, input)
   }
 
+  async getProvidersList(): Promise<string[]> {
+    return this.feedProviderService_.getProvidersList()
+  }
+
   __joinerConfig(): ModuleJoinerConfig {
     return joinerConfig
   }
