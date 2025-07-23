@@ -51,9 +51,10 @@ export default class FeedProviderService {
 
   getFeedData(
     providerId: string,
-    input: Record<string, any>
+    feed: Record<string, any>,
+    container: any
   ): Promise<string> {
     const provider = this.retrieveProvider(providerId)
-    return provider.getFeedData(input)
+    return provider.getFeedData(feed, container)
   }
 }

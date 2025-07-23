@@ -24,6 +24,7 @@ export const getFeedsStep = createStep(
     let feeds
     if (ids.length > 0) {
       feeds = await service.listFeeds({ id: ids })
+      feeds = feeds.filter(feed => providers.includes(feed.provider_id))
     } else {
       const now = new Date();
       feeds = await service.listFeeds({ is_active: true })
@@ -64,11 +65,11 @@ export const GenerateFeedFilesStep = createStep(
 
 
     const generatedFeeds = await Promise.all(feeds.map(async (feed) => {
-      const feedData = await feedModuleService.getFeedData(feed.provider_id, { test: "value" })
+      const feedData = await feedModuleService.getFeedData(feed.provider_id, feed, container)
 
-      const ymlBuffer = Buffer.from(feedData, "utf-8")
+      const fileBuffer = Buffer.from(feedData, "utf-8")
       const gzipAsync = promisify(gzip)
-      const gzipedBuffer = await gzipAsync(ymlBuffer)
+      const gzipedBuffer = await gzipAsync(fileBuffer)
 
       const fileDTO = await fileModuleService.createFiles({
         filename: `${feed.file_name}.gz`,

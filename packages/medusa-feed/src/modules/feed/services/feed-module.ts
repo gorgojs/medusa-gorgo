@@ -25,8 +25,8 @@ export default class FeedModuleService extends MedusaService({
     this.feedProviderService_ = feedProviderService
   }
 
-  async getFeedData(key: string, input: Record<string, any>): Promise<any> {
-    return await this.feedProviderService_.getFeedData(key, input)
+  async getFeedData(key: string, feed: Record<string, any>, container: any): Promise<any> {
+    return await this.feedProviderService_.getFeedData(key, feed, container)
   }
 
   async getProvidersList(): Promise<string[]> {

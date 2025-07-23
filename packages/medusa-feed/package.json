@@ -28,6 +28,9 @@
     "predev": "medusa plugin:publish",
     "prepublishOnly": "medusa plugin:build"
   },
+  "dependencies": {
+    "yandex-market-language": "^0.5.0"
+  },
   "devDependencies": {
     "@medusajs/admin-sdk": "2.8.3",
     "@medusajs/cli": "2.8.3",
