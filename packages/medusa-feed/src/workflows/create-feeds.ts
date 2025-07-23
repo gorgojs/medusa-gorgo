@@ -19,9 +19,11 @@ export const createFeedsStep = createStep(
   'create-feeds-step',
   async (input: CreateFeedsStepInput, { container }) => {
     const service = container.resolve<FeedModuleService>(FEED_MODULE)
-    const createdFeeds = await service.createFeeds(input)
+    const providers = await service.getProvidersList()
+    const feedsToCreate = input.filter(feed => providers.includes(feed.provider_id))
+    const createdFeeds = await service.createFeeds(feedsToCreate)
     const ids = createdFeeds.map((createdFeed) => {
-        return createdFeed.id
+      return createdFeed.id
     })
     return new StepResponse(createdFeeds, ids)
   },

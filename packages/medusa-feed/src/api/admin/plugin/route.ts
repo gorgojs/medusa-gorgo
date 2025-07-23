@@ -9,7 +9,9 @@ export async function GET(
 ) {
   const feedModuleService = req.scope.resolve("feed") as FeedModuleService
   const message = await feedModuleService.getFeedData("fd_system_default", {test: "value"})
-  
+  const providers = await feedModuleService.getProvidersList()
+  console.log("Providers", providers)
+
   const { result } = await runFeedsWorkflow(req.scope)
     .run({
       input: {

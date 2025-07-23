@@ -20,14 +20,16 @@ export const getFeedsStep = createStep(
   'get-feeds-step',
   async (ids: GetFeedsStepInput, { container }) => {
     const service = container.resolve<FeedModuleService>(FEED_MODULE)
+    const providers = await service.getProvidersList()
     let feeds
-    if(ids.length > 0){
+    if (ids.length > 0) {
       feeds = await service.listFeeds({ id: ids })
     } else {
       const now = new Date();
       feeds = await service.listFeeds({ is_active: true })
       feeds = feeds.filter(feed => {
-        if(!feed.last_export_at) return true
+        if (!providers.includes(feed.provider_id)) return false
+        if (!feed.last_export_at) return true
         const diffMs = now.getTime() - feed.last_export_at.getTime()
         return diffMs >= feed.schedule * 1000 * 60
       })
@@ -58,17 +60,16 @@ export const GenerateFeedFilesStep = createStep(
       Modules.FILE
     )
     const feedModuleService = container.resolve<FeedModuleService>(FEED_MODULE)
-    const feedData = await feedModuleService.getFeedData("fd_system_default", {test: "value"})
+    const providers = await feedModuleService.getProvidersList()
+
 
     const generatedFeeds = await Promise.all(feeds.map(async (feed) => {
-      if(feed.provider_id){ // TODO: check provider in providers list
-        const feedData = await feedModuleService.getFeedData(feed.provider_id, {test: "value"})
-      }
+      const feedData = await feedModuleService.getFeedData(feed.provider_id, { test: "value" })
 
       const ymlBuffer = Buffer.from(feedData, "utf-8")
       const gzipAsync = promisify(gzip)
       const gzipedBuffer = await gzipAsync(ymlBuffer)
-      
+
       const fileDTO = await fileModuleService.createFiles({
         filename: `${feed.file_name}.gz`,
         mimeType: "application/gzip",
