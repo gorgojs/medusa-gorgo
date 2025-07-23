@@ -40,6 +40,7 @@
       "status": "Status",
       "schedule": "Export interval",
       "id": "ID",
+      "feedFormat": "Feed format",
       "feedUrl": "Feed link",
       "created": "Created",
       "updated": "Updated"

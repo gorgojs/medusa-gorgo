@@ -12,12 +12,13 @@ import {
 } from "@medusajs/ui"
 import { InformationCircleSolid } from "@medusajs/icons"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { useState, useEffect } from "react"
 import { t } from "i18next"
 
 import { sdk } from "../../../../lib/sdk"
 import { scheduleIntervals } from "../../../../lib/constants"
-import type { Feed } from "../../../../types"
+import type { Feed, ProvidersResponse } from "../../../../types"
 import { getScheduleLabel } from "../../../../lib/utils"
 
 export const FeedCreateModal = ({
@@ -27,6 +28,21 @@ export const FeedCreateModal = ({
   stateModal: boolean,
   closeModal: () => void
 }) => {
+  const { data } = useQuery<ProvidersResponse>({
+    queryFn: () =>
+      sdk.client.fetch(`/admin/feeds/providers`),
+    queryKey: [["feed-providers"]],
+  })
+  const providers = data?.providers ?? []
+
+  const [provider, setProvider] = useState<string>("")
+
+  useEffect(() => {
+    if (providers.length > 0) {
+      setProvider(prev => prev || providers[0])
+    }
+  }, [providers])
+
   const [title, setTitle] = useState("")
   const [fileName, setFileName] = useState("")
   const [schedule, setSchedule] = useState<number>(scheduleIntervals[1])
@@ -48,6 +64,7 @@ export const FeedCreateModal = ({
       queryClient.invalidateQueries({
         queryKey: [["feeds"]],
       })
+      setProvider("")
       setTitle("")
       setFileName("")
       setSchedule(scheduleIntervals[1])
@@ -60,6 +77,7 @@ export const FeedCreateModal = ({
 
   const saveFeed = () => {
     const newFeed: Partial<Feed>[] = [{
+      provider_id: provider,
       title: title,
       file_name: fileName,
       is_active: isActive,
@@ -76,7 +94,7 @@ export const FeedCreateModal = ({
       <FocusModal.Content>
         <FocusModal.Header />
 
-        <FocusModal.Body className="flex flex-col items-center py-16">
+        <FocusModal.Body className="flex flex-col items-center py-16 overflow-y-auto">
           <div className="flex w-full max-w-lg flex-col gap-y-8">
             <div className="flex flex-col gap-y-1">
               <Heading>{t("feeds.create.title")}</Heading>
@@ -94,26 +112,46 @@ export const FeedCreateModal = ({
                 <Input id="file_name" value={fileName} onChange={(e) => setFileName(e.target.value)} />
               </div>
             </div>
-            <div className="flex flex-col gap-y-2">
-              <div className="flex items-center gap-1">
-                <Label htmlFor="schedule_selector" size="small">{t("feeds.fields.schedule")}</Label>
-                <Tooltip content={t("feeds.tooltips.schedule")}>
-                  <InformationCircleSolid className="text-ui-fg-subtle" />
-                </Tooltip>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="flex flex-col gap-y-2">
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="provider_selector" size="small">{t("feeds.fields.feedFormat")}</Label>
+                </div>
+                <Select onValueChange={(v) => setProvider((v))} value={provider}>
+                  <Select.Trigger>
+                    <Select.Value />
+                  </Select.Trigger>
+                  <Select.Content>
+                    {providers.map((value) => (
+                      <Select.Item key={value} value={String(value)}>
+                        {value}
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select>
               </div>
-              <Select onValueChange={(v) => setSchedule(Number(v))} value={String(schedule)}>
-                <Select.Trigger>
-                  <Select.Value />
-                </Select.Trigger>
-                <Select.Content sideOffset={100}>
-                  {scheduleIntervals.map((value) => (
-                    <Select.Item key={value} value={String(value)}>
-                      {getScheduleLabel(value)}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select>
+              <div className="flex flex-col gap-y-2">
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="schedule_selector" size="small">{t("feeds.fields.schedule")}</Label>
+                  <Tooltip content={t("feeds.tooltips.schedule")}>
+                    <InformationCircleSolid className="text-ui-fg-subtle" />
+                  </Tooltip>
+                </div>
+                <Select onValueChange={(v) => setSchedule(Number(v))} value={String(schedule)}>
+                  <Select.Trigger>
+                    <Select.Value />
+                  </Select.Trigger>
+                  <Select.Content>
+                    {scheduleIntervals.map((value) => (
+                      <Select.Item key={value} value={String(value)}>
+                        {getScheduleLabel(value)}
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select>
+              </div>
             </div>
+
             <div className="flex flex-col gap-y-2">
               <Label htmlFor="is-active-switch" size="small">{t("feeds.activityContainer.title")}</Label>
               <Container>

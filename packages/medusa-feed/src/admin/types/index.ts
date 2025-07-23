@@ -2,6 +2,7 @@ import { Settings } from "../../types/settings"
 
 export type Feed = {
   id: string
+  provider_id?: string
   title?: string
   file_name?: string
   file_path?: string
@@ -23,4 +24,8 @@ export type FeedsResponse = {
   count: number
   limit: number
   offset: number
+}
+
+export type ProvidersResponse = {
+  providers: string[]
 }

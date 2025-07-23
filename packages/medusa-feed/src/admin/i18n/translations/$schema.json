@@ -150,6 +150,9 @@
             "id": {
               "type": "string"
             },
+            "feedFormat": {
+              "type": "string"
+            },
             "feedUrl": {
               "type": "string"
             },
