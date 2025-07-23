@@ -24,12 +24,12 @@ export const getFeedsStep = createStep(
     let feeds
     if (ids.length > 0) {
       feeds = await service.listFeeds({ id: ids })
-      feeds = feeds.filter(feed => providers.includes(feed.provider_id))
+      feeds = feeds.filter(feed => providers.map(f => f.identifier).includes(feed.provider_id))
     } else {
       const now = new Date();
       feeds = await service.listFeeds({ is_active: true })
       feeds = feeds.filter(feed => {
-        if (!providers.includes(feed.provider_id)) return false
+        if (!providers.map(f => f.identifier).includes(feed.provider_id)) return false
         if (!feed.last_export_at) return true
         const diffMs = now.getTime() - feed.last_export_at.getTime()
         return diffMs >= feed.schedule * 1000 * 60

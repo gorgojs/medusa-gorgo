@@ -35,11 +35,11 @@ export const FeedCreateModal = ({
   })
   const providers = data?.providers ?? []
 
-  const [provider, setProvider] = useState<string>("")
+  const [providerId, setProviderId] = useState<string>("")
 
   useEffect(() => {
-    if (providers.length > 0) {
-      setProvider(prev => prev || providers[0])
+    if (providers.length > 0 && !providerId) {
+      setProviderId(providers[0].identifier)
     }
   }, [providers])
 
@@ -64,7 +64,7 @@ export const FeedCreateModal = ({
       queryClient.invalidateQueries({
         queryKey: [["feeds"]],
       })
-      setProvider("")
+      setProviderId("")
       setTitle("")
       setFileName("")
       setSchedule(scheduleIntervals[1])
@@ -77,7 +77,7 @@ export const FeedCreateModal = ({
 
   const saveFeed = () => {
     const newFeed: Partial<Feed>[] = [{
-      provider_id: provider,
+      provider_id: providerId,
       title: title,
       file_name: fileName,
       is_active: isActive,
@@ -117,14 +117,14 @@ export const FeedCreateModal = ({
                 <div className="flex items-center gap-1">
                   <Label htmlFor="provider_selector" size="small">{t("feeds.fields.feedFormat")}</Label>
                 </div>
-                <Select onValueChange={(v) => setProvider((v))} value={provider}>
+                <Select onValueChange={(v) => setProviderId((v))} value={providerId}>
                   <Select.Trigger>
                     <Select.Value />
                   </Select.Trigger>
                   <Select.Content>
-                    {providers.map((value) => (
-                      <Select.Item key={value} value={String(value)}>
-                        {value}
+                    {providers.map((p) => (
+                      <Select.Item key={p.identifier} value={p.identifier}>
+                        {p.title}
                       </Select.Item>
                     ))}
                   </Select.Content>

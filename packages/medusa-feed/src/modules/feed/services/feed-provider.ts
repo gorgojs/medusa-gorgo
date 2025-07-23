@@ -1,6 +1,7 @@
 import { Constructor, Logger } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 import { FeedProviderRegistrationPrefix, IFeedProvider } from "../types/provider"
+import { AbstractFeedProvider } from "../utils/abstract-feed-provider"
 
 type InjectedDependencies = {
   [
@@ -43,10 +44,17 @@ export default class FeedProviderService {
     return `${(providerClass as any).identifier}_${optionName}`
   }
 
-  getProvidersList(): string[] {
+  getProvidersList(): Array<{ identifier: string; title: string }> {
     const prefix = FeedProviderRegistrationPrefix
-    return Object.keys(this.dependencies)
-      .filter(key => key.startsWith(prefix))
+
+    return Object.entries(this.dependencies)
+      .filter(([key]) => key.startsWith(prefix))
+      .map(([fullKey, instance]) => {
+        const identifier = fullKey
+        const ctor = (instance as any).constructor as typeof AbstractFeedProvider
+        const title = ctor.title ?? identifier
+        return { identifier, title }
+      })
   }
 
   getFeedData(

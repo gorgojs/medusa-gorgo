@@ -26,6 +26,8 @@ export type FeedsResponse = {
   offset: number
 }
 
+export type Provider = { identifier: string; title: string; }
+
 export type ProvidersResponse = {
-  providers: string[]
+  providers: Array<Provider>,
 }
