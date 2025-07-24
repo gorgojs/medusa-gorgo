@@ -29,6 +29,7 @@
     "prepublishOnly": "medusa plugin:build"
   },
   "dependencies": {
+    "mime-types": "3.0.1",
     "yandex-market-language": "^0.5.0"
   },
   "devDependencies": {

@@ -2,7 +2,8 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { gunzip } from "zlib"
 import { promisify } from "util"
-import { FeedModuleService } from "../../../../modules/feed/services" 
+import { FeedModuleService } from "../../../../modules/feed/services"
+import mime from "mime-types"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
@@ -48,7 +49,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     const gunzipAsync = promisify(gunzip)
     const xmlBuffer = await gunzipAsync(base64Buffer)
   
-    res.setHeader("Content-Type", "application/xml")
+    res.setHeader("Content-Type", mime.lookup(fileName))
     res.setHeader("Content-Disposition", `inline; filename="${fileName}"`)
     res.send(xmlBuffer)
 
