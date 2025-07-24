@@ -54,6 +54,9 @@
       "categoriesSaved": "Категории успешно сохранены",
       "categoriesSaveFailed": "Не получучилось сохранить категории"
     },
+    "validation": {
+      "noSlash": "Имя файла не может содержать символ '/'."
+    },
     "prompts": {
       "deleteFeed": {
         "title": "Вы уверены?",

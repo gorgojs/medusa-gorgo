@@ -210,6 +210,17 @@
             "categoriesSaveFailed"
           ]
         },
+        "validation": {
+          "type": "object",
+          "properties": {
+            "noSlash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "noSlash"
+          ]
+        },
         "prompts": {
           "type": "object",
           "properties": {

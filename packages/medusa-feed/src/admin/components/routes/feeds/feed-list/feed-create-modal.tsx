@@ -45,6 +45,7 @@ export const FeedCreateModal = ({
 
   const [title, setTitle] = useState("")
   const [fileName, setFileName] = useState("")
+  const [fileNameError, setFileNameError] = useState(false)
   const [schedule, setSchedule] = useState<number>(scheduleIntervals[1])
   const [isActive, setIsActive] = useState(false)
 
@@ -74,6 +75,12 @@ export const FeedCreateModal = ({
       console.error("Error creating feed:", error)
     },
   })
+
+  const handleFileNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value
+    setFileName(v)
+    setFileNameError(v.includes("/"))
+  }
 
   const saveFeed = () => {
     const newFeed: Partial<Feed>[] = [{
@@ -108,9 +115,17 @@ export const FeedCreateModal = ({
             </div>
             <div className="flex flex-col gap-y-2">
               <Label htmlFor="file_name" size="small">{t("feeds.fields.fileName")}</Label>
-              <div className="relative">
-                <Input id="file_name" value={fileName} onChange={(e) => setFileName(e.target.value)} />
-              </div>
+              <Input
+                id="file_name"
+                value={fileName}
+                onChange={handleFileNameChange}
+                aria-invalid={fileNameError}
+              />
+              {fileNameError && (
+                <Text size="small" className="text-red-600">
+                  {t("feeds.validation.noSlash")}
+                </Text>
+              )}
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex flex-col gap-y-2">
@@ -173,7 +188,9 @@ export const FeedCreateModal = ({
           <FocusModal.Close>
             <Button variant="secondary">{t("actions.cancel")}</Button>
           </FocusModal.Close>
-          <Button onClick={saveFeed}>{t("actions.save")}</Button>
+          <Button onClick={saveFeed} disabled={fileNameError}>
+            {t("actions.save")}
+          </Button>
         </FocusModal.Footer>
 
       </FocusModal.Content>

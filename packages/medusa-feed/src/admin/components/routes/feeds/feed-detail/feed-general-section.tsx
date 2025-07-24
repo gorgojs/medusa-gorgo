@@ -40,6 +40,7 @@ export const FeedGeneralSection = () => {
   const [fileName, setFileName] = useState("")
   const [schedule, setSchedule] = useState<string>()
   const [isActive, setIsActive] = useState(true)
+  const [fileNameError, setFileNameError] = useState(false)
 
   const { getFullDate, getRelativeDate } = useDate()
 
@@ -146,6 +147,12 @@ export const FeedGeneralSection = () => {
     }
   })
 
+  const handleFileNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value
+    setFileName(v)
+    setFileNameError(v.includes("/"))
+  }
+
   const saveFeedSettings = () => {
     const updatedFeed: Feed = {
       id: id!,
@@ -237,19 +244,19 @@ export const FeedGeneralSection = () => {
         title={t("feeds.fields.feedUrl")}
         value={
           feed?.file_path && feed?.id && feed?.file_name
-          ? (
-            (() => {
-              const feedViewUrl = `${window.location.origin}/feeds/${feed.id}/${feed.file_name}`
-              return (
-                <a href={feedViewUrl} target="_blank" rel="noopener noreferrer">
-                  <Badge size="base" className="h-full">
-                    <Text size="xsmall" className="text-ui-fg-interactive break-all">{feedViewUrl}</Text>
-                  </Badge>
-                </a>
-              )
-            })()
-          )
-          : ""
+            ? (
+              (() => {
+                const feedViewUrl = `${window.location.origin}/feeds/${feed.id}/${feed.file_name}`
+                return (
+                  <a href={feedViewUrl} target="_blank" rel="noopener noreferrer">
+                    <Badge size="base" className="h-full">
+                      <Text size="xsmall" className="text-ui-fg-interactive break-all">{feedViewUrl}</Text>
+                    </Badge>
+                  </a>
+                )
+              })()
+            )
+            : ""
         }
       />
       <SectionRow
@@ -358,10 +365,18 @@ export const FeedGeneralSection = () => {
                 <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
               </div>
               <div className="flex flex-col gap-y-2">
-                <Label size="small" htmlFor="feed-file-name-input">{t("feeds.fields.fileName")}</Label>
-                <div className="relative">
-                  <Input className="pr-14" id="feed-file-name-input" value={fileName} onChange={(e) => setFileName(e.target.value)} />
-                </div>
+                <Label htmlFor="file_name" size="small">{t("feeds.fields.fileName")}</Label>
+                <Input
+                  id="file_name"
+                  value={fileName}
+                  onChange={handleFileNameChange}
+                  aria-invalid={fileNameError}
+                />
+                {fileNameError && (
+                  <Text size="small" className="text-red-600">
+                    {t("feeds.validation.noSlash")}
+                  </Text>
+                )}
               </div>
               <div className="flex flex-col gap-y-2">
                 <Label size="small" htmlFor="schedule-selector">{t("feeds.fields.schedule")}</Label>
@@ -386,7 +401,7 @@ export const FeedGeneralSection = () => {
               <Drawer.Close asChild>
                 <Button size="small" variant="secondary">{t("actions.cancel")}</Button>
               </Drawer.Close>
-              <Button size="small" type="submit" onClick={saveFeedSettings}>{t("actions.save")}</Button>
+              <Button size="small" type="submit" onClick={saveFeedSettings} disabled={fileNameError}>{t("actions.save")}</Button>
             </div>
           </Drawer.Footer>
         </Drawer.Content>

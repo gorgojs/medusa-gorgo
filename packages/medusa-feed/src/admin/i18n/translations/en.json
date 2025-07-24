@@ -54,6 +54,9 @@
       "categoriesSaved": "Categories saved successfully",
       "categoriesSaveFailed": "Failed to save categories"
     },
+    "validation": {
+      "noSlash": "File name cannot contain the '/' character."
+    },
     "prompts": {
       "deleteFeed": {
         "title": "Are you sure?",
