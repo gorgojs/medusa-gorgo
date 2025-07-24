@@ -16,7 +16,7 @@
     "build": "medusa build",
     "seed": "medusa exec ./src/scripts/seed.ts",
     "start": "medusa start",
-    "dev": "yarn predev && medusa develop",
+    "dev": "yarn predev && yarn && medusa develop",
     "predev": "medusa plugin:add @gorgo/medusa-feed",
     "db:migrate": "medusa db:migrate",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
