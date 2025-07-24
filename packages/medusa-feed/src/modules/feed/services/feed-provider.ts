@@ -1,5 +1,4 @@
 import { Constructor, Logger } from "@medusajs/framework/types"
-import { MedusaError } from "@medusajs/framework/utils"
 import { FeedProviderRegistrationPrefix, IFeedProvider } from "../types/provider"
 import { AbstractFeedProvider } from "../utils/abstract-feed-provider"
 
@@ -21,19 +20,35 @@ export default class FeedProviderService {
       : (console as unknown as Logger)
   }
 
-  retrieveProvider(providerId: string): IFeedProvider {
+  retrieveProvider(providerId: string): {
+    provider: IFeedProvider
+    identifier: string
+    title?: string
+    fileExtension?: string
+  } {
+    let instance: IFeedProvider
     try {
-      return this.dependencies[providerId] as IFeedProvider
-    } catch (err) {
+      instance = this.dependencies[providerId] as IFeedProvider
+    } catch (err: any) {
       if (err.name === "AwilixResolutionError") {
-        const errMessage = `Unable to retrieve the feed provider with id: ${providerId}. Please make sure that the provider is registered in the container and it is configured correctly in your project configuration file.`
-        throw new Error(errMessage)
+        throw new Error(
+          `Unable to retrieve the feed provider with id: ${providerId}. Please make sure it is registered in the container and it is configured correctly.`
+        )
       }
+      this.#logger.error(`Error retrieving provider ${providerId}: ${err.message}`)
+      throw new Error(`Unable to retrieve the feed provider with id: ${providerId}.`)
+    }
+    const ctor = (instance as any).constructor as {
+      identifier: string
+      title?: string
+      fileExtension?: string
+    }
 
-      const errMessage = `Unable to retrieve the feed provider with id: ${providerId}, the following error occurred: ${err.message}`
-      this.#logger.error(errMessage)
-
-      throw new Error(errMessage)
+    return {
+      provider: instance,
+      identifier: ctor.identifier,
+      title: ctor.title,
+      fileExtension: ctor.fileExtension,
     }
   }
 
@@ -44,7 +59,7 @@ export default class FeedProviderService {
     return `${(providerClass as any).identifier}_${optionName}`
   }
 
-  getProvidersList(): Array<{ identifier: string; title: string }> {
+  getProvidersList(): Array<{ identifier: string; title: string, fileExtension: string }> {
     const prefix = FeedProviderRegistrationPrefix
 
     return Object.entries(this.dependencies)
@@ -53,7 +68,8 @@ export default class FeedProviderService {
         const identifier = fullKey
         const ctor = (instance as any).constructor as typeof AbstractFeedProvider
         const title = ctor.title ?? identifier
-        return { identifier, title }
+        const fileExtension = ctor.fileExtension
+        return { identifier, title, fileExtension }
       })
   }
 
@@ -62,7 +78,7 @@ export default class FeedProviderService {
     feed: Record<string, any>,
     container: any
   ): Promise<string> {
-    const provider = this.retrieveProvider(providerId)
+    const provider = this.retrieveProvider(providerId).provider
     return provider.getFeedData(feed, container)
   }
 }

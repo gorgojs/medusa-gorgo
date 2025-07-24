@@ -2,6 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { gunzip } from "zlib"
 import { promisify } from "util"
+import { FeedModuleService } from "../../../../modules/feed/services" 
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
@@ -12,7 +13,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     const { data } = await query.graph({
       entity: "feed",
       filters: { id },
-      fields: ["file_path", "file_name"],
+      fields: ["provider_id", "file_path", "file_name"],
     })
 
     const feed = data?.[0]
@@ -21,17 +22,16 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       return res.status(404).json({ message: "Feed not found" })
     }
 
-    const { file_path: filePath, file_name: expectedFileName } = feed
+    const { provider_id: provider_id, file_path: filePath, file_name: expectedFileName } = feed
 
-    if (!filePath || !expectedFileName) {
+    const service = req.scope.resolve<FeedModuleService>("feed")
+    const provider = await service.retrieveProvider(provider_id)
+
+    if (!filePath || !expectedFileName || !provider_id) {
       return res.status(404).json({ message: "Feed file info missing" })
     }
 
-    const expectedFileNameWithExt = expectedFileName
-
-    console.log("expectedFileNameWithExt", expectedFileNameWithExt)
-    console.log("fileName", fileName)
-
+    const expectedFileNameWithExt = expectedFileName + provider.fileExtension
     if (expectedFileNameWithExt !== fileName) {
       return res.status(404).json({ message: "File name does not match" })
     }
@@ -53,6 +53,6 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     res.send(xmlBuffer)
 
   } catch (err) {
-    return res.status(500).json({ message: "Internal server error" })
+    return res.status(500).json({ message: err.message })
   }
 }

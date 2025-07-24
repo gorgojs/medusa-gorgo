@@ -8,6 +8,7 @@ import yml from "yandex-market-language"
 export class SystemFeedService extends AbstractFeedProvider {
   static identifier = "system"
   static title = "Yandex"
+  static fileExtension = ".xml"
 
   async getFeedData(feed: Record<string, any>, container: any): Promise<string> {
     const productModuleService = container.resolve("product")

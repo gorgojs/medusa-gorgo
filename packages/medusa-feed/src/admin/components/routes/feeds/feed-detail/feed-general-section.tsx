@@ -24,7 +24,7 @@ import { SectionRow } from "../../../common/section-row"
 import { sdk } from "../../../../lib/sdk"
 import { Header } from "../../../common/header"
 import { scheduleIntervals } from "../../../../lib/constants"
-import type { Feed, FeedResponse, ProvidersResponse } from "../../../../types"
+import type { Feed, FeedResponse, ProviderResponse } from "../../../../types"
 import { getScheduleLabel } from "../../../../lib/utils"
 import { useDate } from "../../../../hooks/use-date"
 
@@ -44,13 +44,6 @@ export const FeedGeneralSection = () => {
 
   const { getFullDate, getRelativeDate } = useDate()
 
-  const providersData = useQuery<ProvidersResponse>({
-    queryFn: () =>
-      sdk.client.fetch(`/admin/feeds/providers`),
-    queryKey: [["feed-providers"]],
-  }).data
-  const providers = providersData?.providers ?? []
-
   const { data, isError, error } = useQuery<FeedResponse>({
     queryFn: () => sdk.client.fetch(`/admin/feeds/${id}`),
     queryKey: ["feed", id],
@@ -67,6 +60,13 @@ export const FeedGeneralSection = () => {
     }
   }, [data])
   const feed = data?.feed
+
+  const providerData = useQuery<ProviderResponse>({
+    queryFn: () =>
+      sdk.client.fetch(`/admin/feeds/providers/${feed?.provider_id}`),
+    queryKey: [["feed-provider"]],
+  }).data
+  const provider = providerData?.provider
 
   const queryClient = useQueryClient()
   const { mutate: updateFeedMutate } = useMutation({
@@ -244,7 +244,7 @@ export const FeedGeneralSection = () => {
       />
       <SectionRow
         title={t("feeds.fields.fileName")}
-        value={feed?.file_name || "-"}
+        value={`${feed?.file_name}${provider?.fileExtension}` || "-"}
         className="break-all"
       />
       <SectionRow
@@ -253,7 +253,7 @@ export const FeedGeneralSection = () => {
           feed?.file_path && feed?.id && feed?.file_name
             ? (
               (() => {
-                const feedViewUrl = `${window.location.origin}/feeds/${feed.id}/${feed.file_name}`
+                const feedViewUrl = `${window.location.origin}/feeds/${feed.id}/${feed.file_name}${provider?.fileExtension}`
                 return (
                   <a href={feedViewUrl} target="_blank" rel="noopener noreferrer">
                     <Badge size="base" className="h-full">
@@ -281,8 +281,8 @@ export const FeedGeneralSection = () => {
         }
       />
       <SectionRow
-        title={t("feeds.fields.feedFormat")}
-        value={providers.find(p => p.identifier === feed?.provider_id)?.title || "-"}
+        title={t("feeds.fields.fileName")}
+        value={provider?.title || "-"}
         className="break-all"
       />
       <SectionRow
@@ -378,12 +378,19 @@ export const FeedGeneralSection = () => {
               </div>
               <div className="flex flex-col gap-y-2">
                 <Label htmlFor="file_name" size="small">{t("feeds.fields.fileName")}</Label>
-                <Input
-                  id="file_name"
-                  value={fileName}
-                  onChange={handleFileNameChange}
-                  aria-invalid={fileNameError}
-                />
+                <div className="relative">
+                  <Input
+                    id="file_name"
+                    value={fileName}
+                    onChange={handleFileNameChange}
+                    aria-invalid={fileNameError}
+                  />
+                  <div className="absolute inset-y-0 right-0 z-10 flex w-12 items-center justify-center border-l">
+                    <p className="font-medium font-sans txt-compact-small text-ui-fg-muted">
+                      {provider?.fileExtension}
+                    </p>
+                  </div>
+                </div>
                 {fileNameError && (
                   <Text size="small" className="text-red-600">
                     {t("feeds.validation.noSlash")}

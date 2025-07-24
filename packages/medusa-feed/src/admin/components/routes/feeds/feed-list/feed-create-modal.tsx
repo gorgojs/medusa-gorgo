@@ -76,6 +76,7 @@ export const FeedCreateModal = ({
     },
   })
 
+  // TODO: change to zod and use medusa form component
   const handleFileNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value
     setFileName(v)

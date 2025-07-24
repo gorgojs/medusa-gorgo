@@ -66,13 +66,14 @@ export const GenerateFeedFilesStep = createStep(
 
     const generatedFeeds = await Promise.all(feeds.map(async (feed) => {
       const feedData = await feedModuleService.getFeedData(feed.provider_id, feed, container)
+      const providerExtension = (await feedModuleService.retrieveProvider(feed.provider_id)).fileExtension
 
       const fileBuffer = Buffer.from(feedData, "utf-8")
       const gzipAsync = promisify(gzip)
       const gzipedBuffer = await gzipAsync(fileBuffer)
 
       const fileDTO = await fileModuleService.createFiles({
-        filename: `${feed.file_name}.gz`,
+        filename: `${feed.file_name}${providerExtension}.gz`,
         mimeType: "application/gzip",
         content: gzipedBuffer.toString("binary"),
         access: "public",

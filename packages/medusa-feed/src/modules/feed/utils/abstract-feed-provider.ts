@@ -27,6 +27,9 @@ export class AbstractFeedProvider implements IFeedProvider {
    */
   public static title: string
 
+  public static fileExtension: string
+
+
   /**
    * This method validates the options of the provider set in `medusa-config.ts`.
    * Implementing this method is optional. It's useful if your provider requires custom validation.
@@ -57,6 +60,9 @@ export class AbstractFeedProvider implements IFeedProvider {
   }
   getTitle() {
     return (this.constructor as any).title
+  }
+  getFileExtension() {
+    return (this.constructor as any).fileExtension
   }
   async get(): Promise<string> {
     throw Error("upload must be overridden by the child class")
