@@ -24,7 +24,7 @@ import { SectionRow } from "../../../common/section-row"
 import { sdk } from "../../../../lib/sdk"
 import { Header } from "../../../common/header"
 import { scheduleIntervals } from "../../../../lib/constants"
-import type { Feed, FeedResponse } from "../../../../types"
+import type { Feed, FeedResponse, ProvidersResponse } from "../../../../types"
 import { getScheduleLabel } from "../../../../lib/utils"
 import { useDate } from "../../../../hooks/use-date"
 
@@ -43,6 +43,13 @@ export const FeedGeneralSection = () => {
   const [fileNameError, setFileNameError] = useState(false)
 
   const { getFullDate, getRelativeDate } = useDate()
+
+  const providersData = useQuery<ProvidersResponse>({
+    queryFn: () =>
+      sdk.client.fetch(`/admin/feeds/providers`),
+    queryKey: [["feed-providers"]],
+  }).data
+  const providers = providersData?.providers ?? []
 
   const { data, isError, error } = useQuery<FeedResponse>({
     queryFn: () => sdk.client.fetch(`/admin/feeds/${id}`),
@@ -272,6 +279,11 @@ export const FeedGeneralSection = () => {
             )
             : ""
         }
+      />
+      <SectionRow
+        title={t("feeds.fields.feedFormat")}
+        value={providers.find(p => p.identifier === feed?.provider_id)?.title || "-"}
+        className="break-all"
       />
       <SectionRow
         title={t("feeds.fields.schedule")}
