@@ -50,6 +50,7 @@
     "prepublishOnly": "medusa plugin:build"
   },
   "dependencies": {
+    "@gorgo/medusa-feed": "file:.yalc/@gorgo/medusa-feed",
     "yandex-market-language": "^0.5.0"
   },
   "devDependencies": {
