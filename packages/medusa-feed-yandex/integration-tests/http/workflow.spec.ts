@@ -2,7 +2,7 @@ import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { createFeedsWorkflow } from "../../src/workflows/create-feeds"
 import { deleteFeedsWorkflow } from "../../src/workflows/delete-feeds"
 import { updateFeedsWorkflow } from "../../src/workflows/update-feeds"
-import { FEED_MODULE } from "../../src/modules/feed"
+import { FEED_MODULE } from "../../src/providers/system"
 import FeedModuleService from "../../src/modules/feed/service"
 
 

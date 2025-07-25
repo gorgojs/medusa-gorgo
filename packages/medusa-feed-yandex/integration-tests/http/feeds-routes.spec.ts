@@ -1,6 +1,6 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import jwt from "jsonwebtoken"
-import { FEED_MODULE } from "../../src/modules/feed"
+import { FEED_MODULE } from "../../src/providers/system"
 import FeedModuleService from "../../src/modules/feed/service"
 
 medusaIntegrationTestRunner({

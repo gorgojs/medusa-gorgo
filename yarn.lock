@@ -1776,6 +1776,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@gorgo/medusa-feed-yandex@workspace:packages/medusa-feed-yandex"
   dependencies:
+    "@gorgo/medusa-feed": "workspace:*"
     "@medusajs/admin-sdk": "npm:^2.8.0"
     "@medusajs/cli": "npm:^2.8.0"
     "@medusajs/framework": "npm:^2.8.0"
@@ -1828,7 +1829,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@gorgo/medusa-feed@workspace:packages/medusa-feed":
+"@gorgo/medusa-feed@workspace:*, @gorgo/medusa-feed@workspace:packages/medusa-feed":
   version: 0.0.0-use.local
   resolution: "@gorgo/medusa-feed@workspace:packages/medusa-feed"
   dependencies:

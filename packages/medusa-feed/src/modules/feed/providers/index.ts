@@ -1,1 +1,1 @@
-export { default as SystemFeedProvider } from "./system"
+export { default as ProductCsvFeedService } from "./product-csv"

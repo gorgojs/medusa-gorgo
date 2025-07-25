@@ -24,6 +24,7 @@
     "test:unit": "TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit"
   },
   "dependencies": {
+    "@gorgo/medusa-feed": "file:.yalc/@gorgo/medusa-feed",
     "@gorgo/medusa-feed-yandex": "file:.yalc/@gorgo/medusa-feed-yandex",
     "@medusajs/admin-sdk": "2.8.8",
     "@medusajs/cli": "2.8.8",

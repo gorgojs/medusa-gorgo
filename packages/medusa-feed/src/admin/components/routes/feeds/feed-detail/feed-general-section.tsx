@@ -281,7 +281,7 @@ export const FeedGeneralSection = () => {
         }
       />
       <SectionRow
-        title={t("feeds.fields.fileName")}
+        title={t("feeds.fields.feedFormat")}
         value={provider?.title || "-"}
         className="break-all"
       />
@@ -403,7 +403,7 @@ export const FeedGeneralSection = () => {
                   <Select.Trigger>
                     <Select.Value />
                   </Select.Trigger>
-                  <Select.Content sideOffset={100}>
+                  <Select.Content>
                     {scheduleIntervals.map((value) => (
                       <Select.Item key={value} value={String(value)}>
                         {getScheduleLabel(value)}

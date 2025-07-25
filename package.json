@@ -2,7 +2,9 @@
   "name": "medusa-plugins",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/medusa-feed",
+    "packages/medusa-feed-yandex"
   ],
   "packageManager": "yarn@4.9.2",
   "dependencies": {

@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "ES2021",
     "esModuleInterop": true,
     "module": "Node16",
@@ -8,7 +9,7 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
-    "declaration": false,
+    "declaration": true,
     "sourceMap": false,
     "inlineSourceMap": true,
     "outDir": "./.medusa/server",
@@ -24,7 +25,8 @@
   },
   "include": [
     "**/*",
-    ".medusa/types/*"
+    ".medusa/types/*",
+    "src"
   ],
   "exclude": [
     "node_modules",
