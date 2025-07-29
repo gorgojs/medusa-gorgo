@@ -18,13 +18,13 @@ import { Pencil, Trash, Folder } from "@medusajs/icons"
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { t } from "i18next"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { SectionRow } from "../../../common/section-row"
 import { sdk } from "../../../../lib/sdk"
 import { Header } from "../../../common/header"
 import { scheduleIntervals } from "../../../../lib/constants"
-import type { Feed, FeedResponse, ProviderResponse } from "../../../../types"
+import type { Feed, FeedResponse, FeedProviderResponse } from "../../../../types"
 import { getScheduleLabel } from "../../../../lib/utils"
 import { useDate } from "../../../../hooks/use-date"
 
@@ -44,10 +44,28 @@ export const FeedGeneralSection = () => {
 
   const { getFullDate, getRelativeDate } = useDate()
 
-  const { data, isError, error } = useQuery<FeedResponse>({
-    queryFn: () => sdk.client.fetch(`/admin/feeds/${id}`),
-    queryKey: ["feed", id],
+  const { data, isError, error } = useQueries({
+    queryFn: () => {
+      const feedResponse = sdk.client.fetch(`/admin/feeds/${id}`)
+      const feedProviderResponse = sdk.client.fetch(`/admin/feeds/providers/${feed?.provider_id}`)
+      return 
+    },
+    queryKey: ["feed", "feed-provider", id],
   })
+
+  const userQueries = useQueries({
+    queries: [
+      {
+        queryKey: ["feed", id],
+        queryFn: () => sdk.client.fetch<FeedResponse>(`/admin/feeds/${id}`),
+      },
+      {
+        queryKey: ["feed-provider", id],
+        queryFn: () => sdk.client.fetch<FeedProviderResponse>(`/admin/feeds/providers/${data?.feed?.provider_id}`),
+      }
+    ]
+  })
+
   if (isError) {
     throw error
   }
@@ -61,12 +79,12 @@ export const FeedGeneralSection = () => {
   }, [data])
   const feed = data?.feed
 
-  const providerData = useQuery<ProviderResponse>({
+  const response = useQuery<FeedProviderResponse>({
     queryFn: () =>
       sdk.client.fetch(`/admin/feeds/providers/${feed?.provider_id}`),
-    queryKey: [["feed-provider"]],
+    queryKey: ["feed-provider", id],
   }).data
-  const provider = providerData?.provider
+  const provider = response?.provider
 
   const queryClient = useQueryClient()
   const { mutate: updateFeedMutate } = useMutation({
@@ -244,7 +262,7 @@ export const FeedGeneralSection = () => {
       />
       <SectionRow
         title={t("feeds.fields.fileName")}
-        value={`${feed?.file_name}${provider?.fileExtension}` || "-"}
+        value={`${feed?.file_name}${provider?.fileExtension ? provider?.fileExtension : ""}` || "-"}
         className="break-all"
       />
       <SectionRow
@@ -253,11 +271,11 @@ export const FeedGeneralSection = () => {
           feed?.file_path && feed?.id && feed?.file_name
             ? (
               (() => {
-                const feedViewUrl = `${window.location.origin}/feeds/${feed.id}/${feed.file_name}${provider?.fileExtension}`
+                const feedUrl = `${window.location.origin}/feeds/${feed.id}/${feed.file_name}${provider?.fileExtension}`
                 return (
-                  <a href={feedViewUrl} target="_blank" rel="noopener noreferrer">
+                  <a href={feedUrl} target="_blank" rel="noopener noreferrer">
                     <Badge size="base" className="h-full">
-                      <Text size="xsmall" className="text-ui-fg-interactive break-all">{feedViewUrl}</Text>
+                      <Text size="xsmall" className="text-ui-fg-interactive break-all">{feedUrl}</Text>
                     </Badge>
                   </a>
                 )

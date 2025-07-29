@@ -18,7 +18,7 @@ import { t } from "i18next"
 
 import { sdk } from "../../../../lib/sdk"
 import { scheduleIntervals } from "../../../../lib/constants"
-import type { Feed, ProvidersResponse } from "../../../../types"
+import type { Feed, FeedProvidersResponse, FeedProvider } from "../../../../types"
 import { getScheduleLabel } from "../../../../lib/utils"
 
 export const FeedCreateModal = ({
@@ -28,21 +28,14 @@ export const FeedCreateModal = ({
   stateModal: boolean,
   closeModal: () => void
 }) => {
-  const { data } = useQuery<ProvidersResponse>({
+  const { data } = useQuery<FeedProvidersResponse>({
     queryFn: () =>
       sdk.client.fetch(`/admin/feeds/providers`),
     queryKey: [["feed-providers"]],
   })
   const providers = data?.providers ?? []
 
-  const [providerId, setProviderId] = useState<string>("")
-
-  useEffect(() => {
-    if (providers.length > 0 && !providerId) {
-      setProviderId(providers[0].identifier)
-    }
-  }, [providers])
-
+  const [provider, setProvider] = useState<FeedProvider>()
   const [title, setTitle] = useState("")
   const [fileName, setFileName] = useState("")
   const [fileNameError, setFileNameError] = useState(false)
@@ -65,7 +58,7 @@ export const FeedCreateModal = ({
       queryClient.invalidateQueries({
         queryKey: [["feeds"]],
       })
-      setProviderId("")
+      setProvider(undefined)
       setTitle("")
       setFileName("")
       setSchedule(scheduleIntervals[1])
@@ -76,6 +69,12 @@ export const FeedCreateModal = ({
     },
   })
 
+  const handleSetProvider = (value: string) => {
+    const provider = providers.find(p => p.identifier === value)
+    console.log("Selected provider:", provider)
+    setProvider(provider)
+  }
+
   // TODO: change to zod and use medusa form component
   const handleFileNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value
@@ -85,7 +84,7 @@ export const FeedCreateModal = ({
 
   const saveFeed = () => {
     const newFeed: Partial<Feed>[] = [{
-      provider_id: providerId,
+      provider_id: provider?.identifier,
       title: title,
       file_name: fileName,
       is_active: isActive,
@@ -114,38 +113,48 @@ export const FeedCreateModal = ({
               <Label htmlFor="title" size="small">{t("feeds.fields.title")}</Label>
               <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
+
             <div className="flex flex-col gap-y-2">
-              <Label htmlFor="file_name" size="small">{t("feeds.fields.fileName")}</Label>
-              <Input
-                id="file_name"
-                value={fileName}
-                onChange={handleFileNameChange}
-                aria-invalid={fileNameError}
-              />
-              {fileNameError && (
-                <Text size="small" className="text-red-600">
-                  {t("feeds.validation.noSlash")}
-                </Text>
-              )}
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="flex flex-col gap-y-2">
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="provider_selector" size="small">{t("feeds.fields.feedFormat")}</Label>
-                </div>
-                <Select onValueChange={(v) => setProviderId((v))} value={providerId}>
-                  <Select.Trigger>
-                    <Select.Value />
-                  </Select.Trigger>
-                  <Select.Content>
-                    {providers.map((p) => (
-                      <Select.Item key={p.identifier} value={p.identifier}>
-                        {p.title}
-                      </Select.Item>
-                    ))}
-                  </Select.Content>
-                </Select>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="provider_selector" size="small">{t("feeds.fields.feedFormat")}</Label>
               </div>
+              <Select onValueChange={handleSetProvider} value={provider?.identifier}>
+                <Select.Trigger>
+                  <Select.Value />
+                </Select.Trigger>
+                <Select.Content>
+                  {providers.map((p) => (
+                    <Select.Item key={p.identifier} value={p.identifier}>
+                      {p.title}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+               <div className="flex flex-col gap-y-2">
+                <Label htmlFor="file_name" size="small">{t("feeds.fields.fileName")}</Label>
+                <div className="relative">
+                  <Input
+                    id="file_name"
+                    value={fileName}
+                    onChange={handleFileNameChange}
+                    aria-invalid={fileNameError}
+                  />
+                  <div className="absolute inset-y-0 right-0 z-10 flex w-12 items-center justify-center border-l">
+                    <p className="font-medium font-sans txt-compact-small text-ui-fg-muted">
+                      {provider?.fileExtension}
+                    </p>
+                  </div>
+                </div>
+                {fileNameError && (
+                  <Text size="small" className="text-red-600">
+                    {t("feeds.validation.noSlash")}
+                  </Text>
+                )}
+              </div>
+
               <div className="flex flex-col gap-y-2">
                 <div className="flex items-center gap-1">
                   <Label htmlFor="schedule_selector" size="small">{t("feeds.fields.schedule")}</Label>
@@ -182,6 +191,7 @@ export const FeedCreateModal = ({
                 </div>
               </Container>
             </div>
+            
           </div>
         </FocusModal.Body>
 

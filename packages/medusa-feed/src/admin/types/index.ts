@@ -26,12 +26,16 @@ export type FeedsResponse = {
   offset: number
 }
 
-export type Provider = { identifier: string; title: string; fileExtension: string}
-
-export type ProviderResponse = {
-  provider: Provider,
+export type FeedProvider = {
+  identifier: string
+  title: string
+  fileExtension: string
 }
 
-export type ProvidersResponse = {
-  providers: Array<Provider>,
+export type FeedProviderResponse = {
+  provider: FeedProvider
+}
+
+export type FeedProvidersResponse = {
+  providers: Array<FeedProvider>
 }
