@@ -18,8 +18,7 @@ import { Pencil, Trash, Folder } from "@medusajs/icons"
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { t } from "i18next"
-import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query"
-
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { SectionRow } from "../../../common/section-row"
 import { sdk } from "../../../../lib/sdk"
 import { Header } from "../../../common/header"
@@ -44,47 +43,33 @@ export const FeedGeneralSection = () => {
 
   const { getFullDate, getRelativeDate } = useDate()
 
-  const { data, isError, error } = useQueries({
-    queryFn: () => {
-      const feedResponse = sdk.client.fetch(`/admin/feeds/${id}`)
-      const feedProviderResponse = sdk.client.fetch(`/admin/feeds/providers/${feed?.provider_id}`)
-      return 
-    },
-    queryKey: ["feed", "feed-provider", id],
+  const feedResult = useQuery<FeedResponse, Error>({
+    queryKey: ["feed", id],
+    queryFn: () => sdk.client.fetch<FeedResponse>(`/admin/feeds/${id}`),
   })
-
-  const userQueries = useQueries({
-    queries: [
-      {
-        queryKey: ["feed", id],
-        queryFn: () => sdk.client.fetch<FeedResponse>(`/admin/feeds/${id}`),
-      },
-      {
-        queryKey: ["feed-provider", id],
-        queryFn: () => sdk.client.fetch<FeedProviderResponse>(`/admin/feeds/providers/${data?.feed?.provider_id}`),
-      }
-    ]
-  })
-
-  if (isError) {
-    throw error
-  }
-  useEffect(() => {
-    if (data?.feed) {
-      setTitle(data.feed.title!)
-      setFileName(data.feed.file_name!)
-      setIsActive(data.feed.is_active!)
-      setSchedule(String(data.feed.schedule))
-    }
-  }, [data])
-  const feed = data?.feed
-
-  const response = useQuery<FeedProviderResponse>({
+  const providerResult = useQuery<FeedProviderResponse, Error>({
+    queryKey: ["feed-provider", feedResult.data?.feed?.provider_id],
     queryFn: () =>
-      sdk.client.fetch(`/admin/feeds/providers/${feed?.provider_id}`),
-    queryKey: ["feed-provider", id],
-  }).data
-  const provider = response?.provider
+      sdk.client.fetch<FeedProviderResponse>(
+        `/admin/feeds/providers/${feedResult.data!.feed!.provider_id}`
+      ),
+    enabled: Boolean(feedResult.data?.feed?.provider_id),
+  })
+
+  if (feedResult.isError) throw feedResult.error
+  if (providerResult.isError) throw providerResult.error
+
+  useEffect(() => {
+    if (feedResult.data?.feed) {
+      setTitle(feedResult.data.feed.title!)
+      setFileName(feedResult.data.feed.file_name!)
+      setIsActive(feedResult.data.feed.is_active!)
+      setSchedule(String(feedResult.data.feed.schedule))
+    }
+  }, [feedResult.data])
+  const feed = feedResult.data?.feed
+  const provider = providerResult.data?.provider
+
 
   const queryClient = useQueryClient()
   const { mutate: updateFeedMutate } = useMutation({
